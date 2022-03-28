@@ -73,7 +73,36 @@ bottom: .word 11024
  #sw $t1, 8448($t0)
  
 .globl main
-
+main:
+	jal draw_buzz
+check_key:	
+	li $t9, 0xffff0000  
+	lw $t8, 0($t9) 
+	bne $t8, 1, check_key
+keypress_happened:
+	lw $t2, 4($t9) # this assumes $t9 is set to 0xfff0000 from before 
+while_not_p:
+	beq $t2, 0x70, END  # ASCII code of 'p' is 0x70
+if_d:	beq $t2, 0x64, respond_to_d   # ASCII code of 'd' is 0x64 or 97
+if_a:	beq $t2, 0x61, respond_to_a
+	j check_key
+respond_to_d:
+	jal erase_buzz
+	lw $t0, bottom		# t0 = bottom
+	addi $t1, $t0, 4	# $t1 = bottom + 4
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+	jal draw_buzz
+	j check_key
+respond_to_a:
+	jal erase_buzz
+	lw $t0, bottom		# t0 = bottom
+	addi $t1, $t0, -4	# $t1 = bottom + 4
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+	jal draw_buzz
+	j check_key	
+j END
 draw_buzz:
  	li $t0, BASE_ADDRESS # $t0 stores the base address for display
  	li $t1, 0xff0000	# $t1 stores the red colour code 
@@ -172,26 +201,32 @@ draw_buzz:
 	sw $t5, 16($t7)
 
 	jr $ra
+erase_buzz:
+ 	li $t0, BASE_ADDRESS # $t0 stores the base address for display
+ 	li $t4, 0x000000	# $t4 stores the black colour code 
+ 	
+	lw $t7, bottom
+	add $t7, $t0, $t7	#at bottom pixel now
+	add $t0, $zero, $zero	#load zero into $t0
+	addi $t1, $t7, -2560	#$t1 = bottom-2560 
 	
-main:
-jal draw_buzz
+loop:	beq $t7, $t1, erase_end
+	sw $t4, 0($t7)
+	sw $t4, 4($t7)
+	sw $t4, 8($t7)
+	sw $t4, 12($t7)
+	sw $t4, 16($t7)
+	sw $t4, 20($t7)
+	sw $t4, 24($t7)
+	sw $t4, 28($t7)
+	sw $t4, 32($t7)
+	
+	addi $t7, $t7, -256 # go to row above
+	j loop
 
-check_key:	
-	li $t9, 0xffff0000  
-	lw $t8, 0($t9) 
-	beq $t8, 1, keypress_happened 
-keypress_happened:
-	lw $t2, 4($t9) # this assumes $t9 is set to 0xfff0000 from before 
-while_not_p:
-	beq $t2, 0x70, END  # ASCII code of 'p' is 0x70
-if_a:
-	beq $t2, 0x64, respond_to_d   # ASCII code of 'd' is 0x64 or 97
-respond_to_d:
-	lw $t0, bottom		# t0 = bottom
-	addi $t1, $t0, 4	# $t1 = bottom + 4
-	la $t0, bottom		# $t0 = address of bottom
-	sw $t1, 0($t0)		# store $t1 into bottom
-	jal draw_buzz
+erase_end:
+	jr $ra
+
  END:
  	li $v0, 10 # terminate the program gracefully 
  	syscall 

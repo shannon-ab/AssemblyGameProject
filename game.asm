@@ -49,6 +49,7 @@
 .data
 
 bottom: .word 11024
+state: .word 1
 .text 
  li $t0, BASE_ADDRESS # $t0 stores the base address for display 
  
@@ -73,7 +74,10 @@ bottom: .word 11024
  #sw $t1, 8448($t0)
  
 .globl main
-main:
+main:	
+	li $v0, 32 
+	li $a0, 40   # Wait one second (1000 milliseconds) 
+	syscall 
 	jal draw_buzz
 check_key:	
 	li $t9, 0xffff0000  
@@ -118,6 +122,200 @@ draw_buzz:
 	addi $t7, $t7, 8	#at feet
 	sw $t2, 0($t7)
 	sw $t2, 4($t7)
+	sw $t2, 12($t7)
+	sw $t2, 16($t7)
+	
+	addi, $t7, $t7, -256	#second
+	sw $t3, 0($t7)
+	sw $t3, 4($t7)
+	sw $t3, 8($t7)
+	sw $t3, 12($t7)
+	sw $t3, 16($t7)
+	
+	addi, $t7, $t7, -256	#third
+	sw $t2, 0($t7)
+	sw $t4, 4($t7)
+	sw $t4, 8($t7)
+	sw $t4, 12($t7)
+	sw $t2, 16($t7)
+	
+	addi, $t7, $t7, -256	#fourth
+	sw $t3, 0($t7)
+	sw $t3, 4($t7)
+	sw $t3, 8($t7)
+	sw $t3, 12($t7)
+	sw $t3, 16($t7)	 
+	
+	li $t4, 0x0000ff 	# $t4 stores the blue color code
+	addi $t7, $t7, -264	#sixth
+	sw $t3, 0($t7)
+	sw $t2, 4($t7)
+	sw $t3, 8($t7)
+	sw $t4, 12($t7)
+	sw $t2, 16($t7)
+	sw $t1, 20($t7)
+	sw $t3, 24($t7)
+	sw $t2, 28($t7)
+	sw $t3, 32($t7)
+	
+	addi $t7, $t7, -256	#seventh
+	sw $t3, 0($t7)
+	sw $t2, 4($t7)
+	sw $t3, 8($t7)
+	sw $t2, 12($t7)
+	sw $t2, 16($t7)
+	sw $t2, 20($t7)
+	sw $t3, 24($t7)
+	sw $t2, 28($t7)
+	sw $t3, 32($t7)
+	
+	addi $t7, $t7, -252	#eigth
+	sw $t5, 0($t7)
+	sw $t6, 4($t7)
+	sw $t6, 8($t7)
+	sw $t6, 12($t7)
+	sw $t6, 16($t7)
+	sw $t6, 20($t7)
+	sw $t5, 24($t7)
+	
+	li $t4, 0x000000	# $t4 stores the black colour code 
+	addi $t7, $t7, -256	#ninth
+	sw $t5, 0($t7)
+	sw $t6, 4($t7)
+	sw $t4, 8($t7)
+	sw $t6, 12($t7)
+	sw $t4, 16($t7)
+	sw $t6, 20($t7)
+	sw $t5, 24($t7)
+	
+	addi $t7, $t7, -256	#tenth
+	sw $t5, 0($t7)
+	sw $t6, 4($t7)
+	sw $t6, 8($t7)
+	sw $t6, 12($t7)
+	sw $t6, 16($t7)
+	sw $t6, 20($t7)
+	sw $t5, 24($t7)
+
+	addi $t7, $t7, -252	#eleventh
+	sw $t5, 0($t7)
+	sw $t5, 4($t7)
+	sw $t5, 8($t7)
+	sw $t5, 12($t7)
+	sw $t5, 16($t7)
+
+	jr $ra
+
+draw_buzz_left:
+ 	li $t0, BASE_ADDRESS # $t0 stores the base address for display
+ 	li $t1, 0xff0000	# $t1 stores the red colour code 
+ 	li $t2, 0x00ff00	# $t2 stores the green colour code 
+ 	li $t3, 0xffffff	# $t3 stores the whitecolour code 
+ 	li $t4, 0x000000	# $t4 stores the black colour code 
+ 	li $t5, 0xa252c6	# $t5 stores purple
+ 	li $t6, 0xffd9b4	# $t6 stores peach
+ 	 
+	lw $t7, bottom
+	add $t7, $t0, $t7	#at bottom pixel now
+	
+	addi $t7, $t7, 8	#at feet
+	sw $t2, 0($t7)
+	sw $t2, 4($t7)
+	
+	addi, $t7, $t7, -256	#second
+	sw $t3, 0($t7)
+	sw $t3, 4($t7)
+	sw $t3, 8($t7)
+	sw $t3, 12($t7)
+	sw $t3, 16($t7)
+	
+	addi, $t7, $t7, -256	#third
+	sw $t2, 0($t7)
+	sw $t4, 4($t7)
+	sw $t4, 8($t7)
+	sw $t4, 12($t7)
+	sw $t2, 16($t7)
+	
+	addi, $t7, $t7, -256	#fourth
+	sw $t3, 0($t7)
+	sw $t3, 4($t7)
+	sw $t3, 8($t7)
+	sw $t3, 12($t7)
+	sw $t3, 16($t7)	 
+	
+	li $t4, 0x0000ff 	# $t4 stores the blue color code
+	addi $t7, $t7, -264	#sixth
+	sw $t3, 0($t7)
+	sw $t2, 4($t7)
+	sw $t3, 8($t7)
+	sw $t4, 12($t7)
+	sw $t2, 16($t7)
+	sw $t1, 20($t7)
+	sw $t3, 24($t7)
+	sw $t2, 28($t7)
+	sw $t3, 32($t7)
+	
+	addi $t7, $t7, -256	#seventh
+	sw $t3, 0($t7)
+	sw $t2, 4($t7)
+	sw $t3, 8($t7)
+	sw $t2, 12($t7)
+	sw $t2, 16($t7)
+	sw $t2, 20($t7)
+	sw $t3, 24($t7)
+	sw $t2, 28($t7)
+	sw $t3, 32($t7)
+	
+	addi $t7, $t7, -252	#eigth
+	sw $t5, 0($t7)
+	sw $t6, 4($t7)
+	sw $t6, 8($t7)
+	sw $t6, 12($t7)
+	sw $t6, 16($t7)
+	sw $t6, 20($t7)
+	sw $t5, 24($t7)
+	
+	li $t4, 0x000000	# $t4 stores the black colour code 
+	addi $t7, $t7, -256	#ninth
+	sw $t5, 0($t7)
+	sw $t6, 4($t7)
+	sw $t4, 8($t7)
+	sw $t6, 12($t7)
+	sw $t4, 16($t7)
+	sw $t6, 20($t7)
+	sw $t5, 24($t7)
+	
+	addi $t7, $t7, -256	#tenth
+	sw $t5, 0($t7)
+	sw $t6, 4($t7)
+	sw $t6, 8($t7)
+	sw $t6, 12($t7)
+	sw $t6, 16($t7)
+	sw $t6, 20($t7)
+	sw $t5, 24($t7)
+
+	addi $t7, $t7, -252	#eleventh
+	sw $t5, 0($t7)
+	sw $t5, 4($t7)
+	sw $t5, 8($t7)
+	sw $t5, 12($t7)
+	sw $t5, 16($t7)
+
+	jr $ra
+	
+draw_buzz_right:
+ 	li $t0, BASE_ADDRESS # $t0 stores the base address for display
+ 	li $t1, 0xff0000	# $t1 stores the red colour code 
+ 	li $t2, 0x00ff00	# $t2 stores the green colour code 
+ 	li $t3, 0xffffff	# $t3 stores the whitecolour code 
+ 	li $t4, 0x000000	# $t4 stores the black colour code 
+ 	li $t5, 0xa252c6	# $t5 stores purple
+ 	li $t6, 0xffd9b4	# $t6 stores peach
+ 	 
+	lw $t7, bottom
+	add $t7, $t0, $t7	#at bottom pixel now
+	
+	addi $t7, $t7, 8	#at feet
 	sw $t2, 12($t7)
 	sw $t2, 16($t7)
 	

@@ -76,7 +76,7 @@ state: .word 1
 .globl main
 main:	
 	li $v0, 32 
-	li $a0, 40   # Wait one second (1000 milliseconds) 
+	li $a0, 40   # Wait 40 milliseconds 
 	syscall 
 	jal draw_buzz
 check_key:	
@@ -98,6 +98,7 @@ respond_to_d:
 	sw $t1, 0($t0)		# store $t1 into bottom
 	jal draw_buzz
 	j check_key
+
 respond_to_a:
 	jal erase_buzz
 	lw $t0, bottom		# t0 = bottom
@@ -115,7 +116,7 @@ draw_buzz:
  	li $t4, 0x000000	# $t4 stores the black colour code 
  	li $t5, 0xa252c6	# $t5 stores purple
  	li $t6, 0xffd9b4	# $t6 stores peach
- 	 
+ 	
 	lw $t7, bottom
 	add $t7, $t0, $t7	#at bottom pixel now
 	

@@ -48,8 +48,9 @@
 
 .data
 
-bottom: .word 11024
+bottom: .word 15620
 state: .word 1
+ground: .word 16132
 .text 
  li $t0, BASE_ADDRESS # $t0 stores the base address for display 
  
@@ -79,6 +80,7 @@ main:
 	li $a0, 40   # Wait 40 milliseconds 
 	syscall 
 	jal draw_buzz
+	jal draw_platform
 check_key:	
 	li $t9, 0xffff0000  
 	lw $t8, 0($t9) 
@@ -91,6 +93,14 @@ if_d:	beq $t2, 0x64, respond_to_d   # ASCII code of 'd' is 0x64 or 97
 if_a:	beq $t2, 0x61, respond_to_a
 	j check_key
 respond_to_d:
+	lw $t0, bottom		# t0 = bottom
+	addi, $t0, $t0, 32
+	addi $t4, $zero, 256
+	addi $t3, $zero, 252
+	div $t0, $t4
+	mfhi $t0
+	beq $t0, $t3, check_key
+	
 	jal erase_buzz
 	lw $t0, bottom		# t0 = bottom
 	addi $t1, $t0, 4	# $t1 = bottom + 4
@@ -100,6 +110,12 @@ respond_to_d:
 	j check_key
 
 respond_to_a:
+	lw $t0, bottom		# t0 = bottom
+	addi $t4, $zero, 256
+	div $t0, $t4
+	mfhi $t0
+	beq $t0, $zero, check_key
+	
 	jal erase_buzz
 	lw $t0, bottom		# t0 = bottom
 	addi $t1, $t0, -4	# $t1 = bottom + 4
@@ -108,6 +124,36 @@ respond_to_a:
 	jal draw_buzz
 	j check_key	
 j END
+
+draw_platform:
+	li $t1, 0xffffff 	# $t1 stores the white colour code
+	
+	lw, $t0, ground
+	addi $t0, $t0, BASE_ADDRESS
+	
+	sw $t1, 0($t0)
+	sw $t1, 4($t0)
+	sw $t1, 8($t0)
+	sw $t1, 12($t0)
+	sw $t1, 16($t0)
+	sw $t1, 20($t0)
+	sw $t1, 24($t0)
+	sw $t1, 28($t0)
+	sw $t1, 32($t0)
+	
+	addi $t0, $t0, -256
+
+	sw $t1, 0($t0)
+	sw $t1, 4($t0)
+	sw $t1, 8($t0)
+	sw $t1, 12($t0)
+	sw $t1, 16($t0)
+	sw $t1, 20($t0)
+	sw $t1, 24($t0)
+	sw $t1, 28($t0)
+	sw $t1, 32($t0)
+	jr $ra
+	
 draw_buzz:
  	li $t0, BASE_ADDRESS # $t0 stores the base address for display
  	li $t1, 0xff0000	# $t1 stores the red colour code 
@@ -426,6 +472,93 @@ loop:	beq $t7, $t1, erase_end
 erase_end:
 	jr $ra
 
+draw_alien:
+ 	li $t0, BASE_ADDRESS # $t0 stores the base address for display
+ 	li $t2, 0x00ff00	# $t2 stores the green colour code 
+ 	li $t3, 0xffffff	# $t3 stores the whitecolour code 
+ 	li $t4, 0x000000	# $t4 stores the black colour code 
+ 	li $t5, 0xa252c6	# $t5 stores purple
+
+ 	
+	lw $t7, bottom
+	add $t7, $t0, $t7	#at bottom pixel now
+	
+	li $t1, 0x0000ff	# $t1 stores the blue colour code
+	sw $t1, 0($t7)		# drawing left foot
+	sw $t1, 4($t7)
+	sw $t1, 8($t7)
+	sw $t1, 16($t7)
+	sw $t1, 20($t7)		#drawing right foot
+	sw $t1, 24($t7)
+	
+	addi $t7, $t7, -252
+	li $t1, 0x87ceeb	# $t1 stores the sky blue colour code
+	sw $t1, 0($t7)		
+	sw $t1, 4($t7)
+	sw $t1, 8($t7)
+	sw $t1, 12($t7)
+	sw $t1, 16($t7)		
+	
+	addi $t7, $t7, -256
+	li $t1, 0x0000ff	# $t1 stores the sky blue colour code
+	sw $t1, 0($t7)		
+	sw $t1, 4($t7)
+	sw $t1, 8($t7)
+	sw $t1, 12($t7)
+	sw $t1, 16($t7)		
+
+	addi $t7, $t7, -260
+	li $t1, 0x87ceeb	# $t1 stores the sky blue colour code
+	sw $t1, 0($t7)		
+	sw $t1, 4($t7)
+	sw $t1, 8($t7)
+	sw $t1, 12($t7)
+	sw $t1, 16($t7)		
+	sw $t1, 20($t7)
+	sw $t1, 24($t7)
+
+	addi $t7, $t7, -252	# purple layer
+	sw $t5, 0($t7)		
+	sw $t5, 4($t7)
+	sw $t5, 8($t7)
+	sw $t5, 12($t7)
+	sw $t5, 16($t7)		
+
+	addi $t7, $t7, -256	# green
+	sw $t2, 0($t7)		
+	sw $t2, 4($t7)
+	sw $t2, 8($t7)
+	sw $t2, 12($t7)
+	sw $t2, 16($t7)		
+
+	addi $t7, $t7, -260
+	sw $t2, 0($t7)		
+	sw $t2, 4($t7)
+	sw $t2, 8($t7)
+	sw $t2, 12($t7)
+	sw $t2, 16($t7)	
+	sw $t2, 20($t7)
+	sw $t2, 24($t7)
+
+	addi $t7, $t7, -256
+	sw $t2, 0($t7)		
+	sw $t2, 4($t7)
+	sw $t2, 8($t7)
+	sw $t2, 12($t7)
+	sw $t2, 16($t7)	
+	sw $t2, 20($t7)
+	sw $t2, 24($t7)
+	
+
+	addi $t7, $t7, -256
+	sw $t2, 0($t7)		
+	sw $t2, 12($t7)	
+	sw $t2, 24($t7)	
+
+	addi $t7, $t7, -256	
+	sw $t2, 12($t7)	
+	
+	jr $ra	
  END:
  	li $v0, 10 # terminate the program gracefully 
  	syscall 

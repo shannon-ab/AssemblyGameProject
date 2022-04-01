@@ -51,47 +51,43 @@
 bottom: .word 15620
 state: .word 1
 ground: .word 16132
+jump_state: .word -1
+gravity_state: .word -1
 .text 
  li $t0, BASE_ADDRESS # $t0 stores the base address for display 
- 
- #sw $t1, ($t0)
- #sw $t1, 4($t0)		# paint the bottom left unit red
- #sw $t1, 16128($t0)
- #sw $t1, 16132($t0)	# paint the pixel next to it red
- #sw $t3, 15888($t0)
- #sw $t1, 16140($t0)
- #sw $t1, 16144($t0)
- #sw $t1, 15872($t0)
- #sw $t1, 15616($t0)
- #sw $t1, 15364($t0)
- #sw $t1, 15112($t0)
- #sw $t1, 15888($t0)
- #sw $t1, 15632($t0)
- #sw $t1, 15372($t0)
- 
-   
- #sw $t1, 11008($t0)
- #sw $t1, 11024($t0)
- #sw $t1, 8448($t0)
+
  
 .globl main
 main:	
+	jal draw_buzz
+	#jal draw_alien
+	jal draw_platform
+if_jump:
 	li $v0, 32 
 	li $a0, 40   # Wait 40 milliseconds 
 	syscall 
-	jal draw_buzz
-	jal draw_platform
+	
+	lw $t0, jump_state		# $t0 = jump_state
+	addi $t1, $zero, -1
+	beq $t0, $t1, if_gravity
+	jal buzz_jump
+if_gravity:
+	lw $t0, gravity_state		# $t0 = gravity_state
+	addi $t1, $zero, -1
+	beq $t0, $t1, check_key
+	jal buzz_gravity
 check_key:	
 	li $t9, 0xffff0000  
 	lw $t8, 0($t9) 
-	bne $t8, 1, check_key
+	bne $t8, 1, if_jump
 keypress_happened:
 	lw $t2, 4($t9) # this assumes $t9 is set to 0xfff0000 from before 
 while_not_p:
 	beq $t2, 0x70, END  # ASCII code of 'p' is 0x70
 if_d:	beq $t2, 0x64, respond_to_d   # ASCII code of 'd' is 0x64 or 97
 if_a:	beq $t2, 0x61, respond_to_a
-	j check_key
+if_w:	beq $t2, 0x77, respond_to_w
+	j if_jump
 respond_to_d:
 	lw $t0, bottom		# t0 = bottom
 	addi, $t0, $t0, 32
@@ -107,7 +103,7 @@ respond_to_d:
 	la $t0, bottom		# $t0 = address of bottom
 	sw $t1, 0($t0)		# store $t1 into bottom
 	jal draw_buzz
-	j check_key
+	j if_jump
 
 respond_to_a:
 	lw $t0, bottom		# t0 = bottom
@@ -122,7 +118,12 @@ respond_to_a:
 	la $t0, bottom		# $t0 = address of bottom
 	sw $t1, 0($t0)		# store $t1 into bottom
 	jal draw_buzz
-	j check_key	
+	j if_jump
+respond_to_w:	
+	la $t0, jump_state
+	sw $zero, 0($t0)
+	jal buzz_jump
+	j if_jump	
 j END
 
 draw_platform:
@@ -558,7 +559,238 @@ draw_alien:
 	addi $t7, $t7, -256	
 	sw $t2, 12($t7)	
 	
-	jr $ra	
+	jr $ra
+	
+buzz_jump: 
+	addi $sp, $sp, -4		# save $ra onto the stack
+	sw $ra, 0($sp)
+	
+	jal erase_buzz			# call erase_buzz
+	
+	lw $t1, bottom			# $t1 = bottom
+	lw $t2, jump_state		# $t2 = jump_state
+	addi $t3, $zero, 1
+	
+	beq $t2, $zero, jump_zero	# if jump_state == 0, go to jump_zero
+	
+	beq $t2, $t3, jump_one 		# if jump_state == 1, go to jump_one
+	
+	addi $t3, $zero, 2
+	beq $t2, $t3, jump_two
+	
+	addi $t3, $zero, 3
+	beq $t2, $t3, jump_three
+	
+	addi $t3, $zero, 4
+	beq $t2, $t3, jump_four
+	
+	addi $t3, $zero, 5
+	beq $t2, $t3, jump_five
+
+	addi $t3, $zero, 6
+	beq $t2, $t3, jump_six
+	
+	addi $t3, $zero, 8
+	beq $t2, $t3, jump_eight
+
+	addi $t3, $zero, 13
+	beq $t2, $t3, jump_thirt
+	
+	jal draw_buzz
+	j increment		#not equal to any of above jump states, jump to increment
+jump_zero:	
+	addi $t1, $t1, -1280
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+	jal draw_buzz
+	
+	j increment
+jump_one:
+	addi $t1, $t1, -1024
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+	jal draw_buzz
+	
+	j increment
+	
+jump_two:
+	addi $t1, $t1, -768
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+	jal draw_buzz
+	
+	j increment
+	
+jump_three:
+	addi $t1, $t1, -512
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+	jal draw_buzz
+	
+	j increment
+	
+jump_four:
+	addi $t1, $t1, -512
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+	jal draw_buzz
+	
+	j increment
+
+jump_five:
+	addi $t1, $t1, -256
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+	jal draw_buzz
+
+	j increment
+
+jump_six:
+	addi $t1, $t1, -256
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+	jal draw_buzz
+
+	j increment
+
+jump_eight:
+	addi $t1, $t1, -256
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+	jal draw_buzz
+
+	j increment
+jump_thirt:
+	jal draw_buzz
+	addi $t2, $zero, -1	# $t2 = -1
+	la $t0, jump_state	# $t0 = address of jump_state
+	sw $t2, 0($t0)		# jump_state = -1
+	
+	la $t0, gravity_state
+	sw $zero, 0($t0)	#gravity_state = 0
+	j end_jump
+increment:
+	lw $t2, jump_state	# $t2 = jump_state
+	addi $t2, $t2, 1	# $t2 += 1
+	la $t0, jump_state	# $t0 = address of jump_state
+	sw $t2, 0($t0)		# jump_state += 1 
+end_jump:	
+	lw $ra, 0($sp)		# get saved $ra off stack
+	addi $sp, $sp, 4
+	jr $ra
+	
+buzz_gravity:
+	addi $sp, $sp, -4		# save $ra onto the stack
+	sw $ra, 0($sp)
+	
+	jal erase_buzz			# call erase_buzz
+	
+	lw $t1, bottom			# $t1 = bottom
+	lw $t2, gravity_state		# $t2 = jump_state
+	
+	beq $t2, $zero, gravity_zero	# if jump_state == 0, go to jump_zero
+	
+	addi $t3, $zero, 2
+	beq $t2, $t3, gravity_two
+	
+	addi $t3, $zero, 3
+	beq $t2, $t3, gravity_three
+	
+	addi $t3, $zero, 4
+	beq $t2, $t3, gravity_four
+	
+	addi $t3, $zero, 5
+	beq $t2, $t3, gravity_five
+
+	addi $t3, $zero, 6
+	beq $t2, $t3, gravity_six
+	
+	addi $t3, $zero, 7
+	beq $t2, $t3, gravity_seven
+	
+	addi $t3, $zero, 8
+	beq $t2, $t3, gravity_eight
+	
+	jal draw_buzz
+	j gravity_increment		#not equal to any of above gravity states, jump to increment
+gravity_zero:	
+	addi $t1, $t1, 256
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+	jal draw_buzz
+	
+	j gravity_increment
+
+gravity_two:
+	addi $t1, $t1, 256
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+	jal draw_buzz
+	
+	j gravity_increment
+	
+gravity_three:
+	addi $t1, $t1, 256
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+	jal draw_buzz
+	
+	j gravity_increment
+	
+gravity_four:
+	addi $t1, $t1, 512
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+	jal draw_buzz
+	
+	j gravity_increment
+
+gravity_five:
+	addi $t1, $t1, 512
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+	jal draw_buzz
+
+	j gravity_increment
+
+gravity_six:
+	addi $t1, $t1, 768
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+	jal draw_buzz
+
+	j gravity_increment
+
+gravity_seven:
+	addi $t1, $t1, 1024
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+	jal draw_buzz
+
+	j gravity_increment
+	
+gravity_eight:
+	addi $t1, $t1, 1280
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+	jal draw_buzz
+
+	addi $t2, $zero, -1	# $t2 = -1
+	la $t0, gravity_state	# $t0 = address of gravity_state
+	sw $t2, 0($t0)		# gravity_state = -1
+	j end_gravity
+	
+gravity_increment:
+	lw $t2, gravity_state	# $t2 = jump_state
+	addi $t2, $t2, 1	# $t2 += 1
+	la $t0, gravity_state	# $t0 = address of jump_state
+	sw $t2, 0($t0)		# jump_state += 1 
+	
+end_gravity:	
+	lw $ra, 0($sp)		# get saved $ra off stack
+	addi $sp, $sp, 4
+	jr $ra
+	
  END:
  	li $v0, 10 # terminate the program gracefully 
  	syscall 

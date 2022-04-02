@@ -590,9 +590,15 @@ buzz_jump:
 	addi $t3, $zero, 6
 	beq $t2, $t3, jump_six
 	
-	addi $t3, $zero, 8
-	beq $t2, $t3, jump_eight
+	addi $t3, $zero, 7
+	beq $t2, $t3, jump_seven
 
+	addi $t3, $zero, 9
+	beq $t2, $t3, jump_nine
+	
+	addi $t3, $zero, 11
+	beq $t2, $t3, jump_elev
+	
 	addi $t3, $zero, 13
 	beq $t2, $t3, jump_thirt
 	
@@ -653,7 +659,23 @@ jump_six:
 
 	j increment
 
-jump_eight:
+jump_seven:
+	addi $t1, $t1, -256
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+	jal draw_buzz
+
+	j increment
+	
+jump_nine:
+	addi $t1, $t1, -256
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+	jal draw_buzz
+
+	j increment
+	
+jump_elev:
 	addi $t1, $t1, -256
 	la $t0, bottom		# $t0 = address of bottom
 	sw $t1, 0($t0)		# store $t1 into bottom
@@ -693,9 +715,6 @@ buzz_gravity:
 	addi $t3, $zero, 2
 	beq $t2, $t3, gravity_two
 	
-	addi $t3, $zero, 3
-	beq $t2, $t3, gravity_three
-	
 	addi $t3, $zero, 4
 	beq $t2, $t3, gravity_four
 	
@@ -710,6 +729,15 @@ buzz_gravity:
 	
 	addi $t3, $zero, 8
 	beq $t2, $t3, gravity_eight
+	
+	addi $t3, $zero, 9
+	beq $t2, $t3, gravity_nine
+	
+	addi $t3, $zero, 10
+	beq $t2, $t3, gravity_ten
+	
+	addi $t3, $zero, 11
+	beq $t2, $t3, gravity_elev
 	
 	jal draw_buzz
 	j gravity_increment		#not equal to any of above gravity states, jump to increment
@@ -729,7 +757,7 @@ gravity_two:
 	
 	j gravity_increment
 	
-gravity_three:
+gravity_four:
 	addi $t1, $t1, 256
 	la $t0, bottom		# $t0 = address of bottom
 	sw $t1, 0($t0)		# store $t1 into bottom
@@ -737,7 +765,23 @@ gravity_three:
 	
 	j gravity_increment
 	
-gravity_four:
+gravity_five:
+	addi $t1, $t1, 256
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+	jal draw_buzz
+	
+	j gravity_increment
+	
+gravity_six:
+	addi $t1, $t1, 256
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+	jal draw_buzz
+	
+	j gravity_increment
+	
+gravity_seven:
 	addi $t1, $t1, 512
 	la $t0, bottom		# $t0 = address of bottom
 	sw $t1, 0($t0)		# store $t1 into bottom
@@ -745,7 +789,7 @@ gravity_four:
 	
 	j gravity_increment
 
-gravity_five:
+gravity_eight:
 	addi $t1, $t1, 512
 	la $t0, bottom		# $t0 = address of bottom
 	sw $t1, 0($t0)		# store $t1 into bottom
@@ -753,7 +797,7 @@ gravity_five:
 
 	j gravity_increment
 
-gravity_six:
+gravity_nine:
 	addi $t1, $t1, 768
 	la $t0, bottom		# $t0 = address of bottom
 	sw $t1, 0($t0)		# store $t1 into bottom
@@ -761,7 +805,7 @@ gravity_six:
 
 	j gravity_increment
 
-gravity_seven:
+gravity_ten:
 	addi $t1, $t1, 1024
 	la $t0, bottom		# $t0 = address of bottom
 	sw $t1, 0($t0)		# store $t1 into bottom
@@ -769,7 +813,7 @@ gravity_seven:
 
 	j gravity_increment
 	
-gravity_eight:
+gravity_elev:
 	addi $t1, $t1, 1280
 	la $t0, bottom		# $t0 = address of bottom
 	sw $t1, 0($t0)		# store $t1 into bottom
@@ -790,8 +834,16 @@ end_gravity:
 	lw $ra, 0($sp)		# get saved $ra off stack
 	addi $sp, $sp, 4
 	jr $ra
+
+bottom_check:
+	lw $t0, bottom		# $t0 = bottom
+	addi $t1, $t0, 32	# $t1 = bottom + 32
+	li 
 	
- END:
+	beq $t0, $t1, 
+END:
+ 	li $v0, 1
+ 	syscall
  	li $v0, 10 # terminate the program gracefully 
  	syscall 
 	

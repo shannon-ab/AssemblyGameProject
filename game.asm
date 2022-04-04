@@ -62,6 +62,8 @@ main:
 	jal draw_buzz
 	#jal draw_alien
 	jal draw_platform
+	
+	lw $s0, bottom
 if_jump:
 	li $v0, 32 
 	li $a0, 40   # Wait 40 milliseconds 
@@ -70,6 +72,7 @@ if_jump:
 	lw $t0, jump_state		# $t0 = jump_state
 	addi $t1, $zero, -1
 	beq $t0, $t1, if_gravity
+	
 	jal buzz_jump
 if_gravity:
 	lw $t0, gravity_state		# $t0 = gravity_state
@@ -89,43 +92,120 @@ if_a:	beq $t2, 0x61, respond_to_a
 if_w:	beq $t2, 0x77, respond_to_w
 	j if_jump
 respond_to_d:
-	lw $t0, bottom		# t0 = bottom
-	addi, $t0, $t0, 32
-	addi $t4, $zero, 256
-	addi $t3, $zero, 252
-	div $t0, $t4
-	mfhi $t0
-	beq $t0, $t3, check_key
-	
 	jal erase_buzz
-	lw $t0, bottom		# t0 = bottom
-	addi $t1, $t0, 4	# $t1 = bottom + 4
-	la $t0, bottom		# $t0 = address of bottom
-	sw $t1, 0($t0)		# store $t1 into bottom
+	jal move_right
 	jal draw_buzz
 	j if_jump
 
 respond_to_a:
-	lw $t0, bottom		# t0 = bottom
-	addi $t4, $zero, 256
-	div $t0, $t4
-	mfhi $t0
-	beq $t0, $zero, check_key
-	
 	jal erase_buzz
-	lw $t0, bottom		# t0 = bottom
-	addi $t1, $t0, -4	# $t1 = bottom + 4
-	la $t0, bottom		# $t0 = address of bottom
-	sw $t1, 0($t0)		# store $t1 into bottom
+	jal move_left
 	jal draw_buzz
 	j if_jump
-respond_to_w:	
+respond_to_w:
+	jal bottom_check
+	beq $v0, $zero, if_jump
 	la $t0, jump_state
 	sw $zero, 0($t0)
 	jal buzz_jump
 	j if_jump	
 j END
+move_right:
+	lw $t0, bottom		# $t0 = bottom
+	addi, $t0, $t0, 32	# $t0 = right bottom
+	addi $t4, $zero, 256	# $t4 = 256
+	addi $t3, $zero, 252	# $t3 = 252
+	div $t0, $t4		# $t0 = $t0 % 256
+	mfhi $t0	
+	beq $t0, $t3, move_right_end		#if $t0 % 256 = 252 cannot move right
+	
+	lw $t0, bottom		# $t0 = bottom
+	addi $t0, $t0, BASE_ADDRESS
+	addi, $t0, $t0, 36	# $t0 = right bottom + 1 pixel
+	addi $t3, $t0, -2560	# $t3= top right
+	li $t1, 0x000000
+	
+while_right:	beq $t0, $t3, right
+		lw $t2, 0($t0)
+		bne $t2, $t1, move_right_end
+		addi $t0, $t0, -256
+	
+right:
+	lw $t0, bottom		# t0 = bottom
+	addi $t1, $t0, 4	# $t1 = bottom + 4
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
 
+move_right_end:
+	jr $ra	
+
+move_left:
+	lw $t0, bottom		# t0 = bottom
+	addi $t4, $zero, 256
+	div $t0, $t4
+	mfhi $t0
+	beq $t0, $zero, move_left_end
+	
+	lw $t0, bottom		# $t0 = bottom
+	addi $t0, $t0, BASE_ADDRESS
+	addi, $t0, $t0, -4	# $t0 = right bottom + 1 pixel
+	addi $t3, $t0, -2560	# $t3= top right
+	li $t1, 0x000000
+	
+while_left:	
+	beq $t0, $t3, left
+	lw $t2, 0($t0)
+	bne $t2, $t1, move_left_end
+	addi $t0, $t0, -256
+	
+left:
+	lw $t0, bottom		# t0 = bottom
+	addi $t1, $t0, -4	# $t1 = bottom + 4
+	la $t0, bottom		# $t0 = address of bottom
+	sw $t1, 0($t0)		# store $t1 into bottom
+
+move_left_end:
+	jr $ra	
+bottom_check:
+	lw $t0, bottom		# $t0 = bottom
+	addi $t0, $t0, BASE_ADDRESS
+	addi $t0, $t0, 256
+	addi $t2, $t0, 36
+	li $t1, 0x000000
+while_bottom:	
+	beq $t0, $t2, bottom_false
+	lw $t2, 0($t0)
+	bne $t2, $t1, bottom_true
+	addi $t0, $t0, 4
+bottom_false:
+	addi $v0, $zero, 0
+	j bottom_check_end
+bottom_true:
+	addi $v0, $zero, 1
+bottom_check_end:
+	jr $ra
+	
+	
+top_check:
+	lw $t0, bottom		# $t0 = bottom
+	addi $t0, $t0, BASE_ADDRESS
+	addi $t0, $t0, -2560
+	addi $t2, $t0, 36
+	li $t1, 0x000000
+while_top:	
+	beq $t0, $t2, top_false
+	lw $t2, 0($t0)
+	bne $t2, $t1, top_true
+	addi $t0, $t0, 4
+top_false:
+	addi $v0, $zero, 0
+	j bottom_check_end
+top_true:
+	addi $v0, $zero, 1
+top_check_end:
+	jr $ra
+
+		
 draw_platform:
 	li $t1, 0xffffff 	# $t1 stores the white colour code
 	
@@ -141,6 +221,9 @@ draw_platform:
 	sw $t1, 24($t0)
 	sw $t1, 28($t0)
 	sw $t1, 32($t0)
+	sw $t1, 36($t0)
+	sw $t1, 40($t0)
+	sw $t1, 44($t0)
 	
 	addi $t0, $t0, -256
 
@@ -153,6 +236,34 @@ draw_platform:
 	sw $t1, 24($t0)
 	sw $t1, 28($t0)
 	sw $t1, 32($t0)
+	sw $t1, 36($t0)
+	sw $t1, 40($t0)
+	sw $t1, 44($t0)
+	
+	addi $t0, $t0, -3036
+	
+	sw $t1, 0($t0)
+	sw $t1, 4($t0)
+	sw $t1, 8($t0)
+	sw $t1, 12($t0)
+	sw $t1, 16($t0)
+	sw $t1, 20($t0)
+	sw $t1, 24($t0)
+	sw $t1, 28($t0)
+	sw $t1, 32($t0)
+	
+	addi $t0, $t0, -256
+	
+	sw $t1, 0($t0)
+	sw $t1, 4($t0)
+	sw $t1, 8($t0)
+	sw $t1, 12($t0)
+	sw $t1, 16($t0)
+	sw $t1, 20($t0)
+	sw $t1, 24($t0)
+	sw $t1, 28($t0)
+	sw $t1, 32($t0)
+	
 	jr $ra
 	
 draw_buzz:
@@ -567,6 +678,9 @@ buzz_jump:
 	
 	jal erase_buzz			# call erase_buzz
 	
+	jal top_check
+	bne $v0, $zero, jump_thirt
+	
 	lw $t1, bottom			# $t1 = bottom
 	lw $t2, jump_state		# $t2 = jump_state
 	addi $t3, $zero, 1
@@ -707,6 +821,9 @@ buzz_gravity:
 	
 	jal erase_buzz			# call erase_buzz
 	
+	jal bottom_check
+	bne $v0, $zero, bottom_bound
+	
 	lw $t1, bottom			# $t1 = bottom
 	lw $t2, gravity_state		# $t2 = jump_state
 	
@@ -823,7 +940,14 @@ gravity_elev:
 	la $t0, gravity_state	# $t0 = address of gravity_state
 	sw $t2, 0($t0)		# gravity_state = -1
 	j end_gravity
-	
+
+bottom_bound:
+	jal draw_buzz
+	addi $t2, $zero, -1	# $t2 = -1
+	la $t0, gravity_state	# $t0 = address of gravity_state
+	sw $t2, 0($t0)		# gravity_state = -1
+	j end_gravity
+
 gravity_increment:
 	lw $t2, gravity_state	# $t2 = jump_state
 	addi $t2, $t2, 1	# $t2 += 1
@@ -835,12 +959,6 @@ end_gravity:
 	addi $sp, $sp, 4
 	jr $ra
 
-bottom_check:
-	lw $t0, bottom		# $t0 = bottom
-	addi $t1, $t0, 32	# $t1 = bottom + 32
-	li 
-	
-	beq $t0, $t1, 
 END:
  	li $v0, 1
  	syscall

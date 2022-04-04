@@ -75,6 +75,7 @@ if_jump:
 	beq $t0, $t1, if_gravity
 	
 	jal buzz_jump
+	j check_key
 if_gravity:
 	lw $t0, gravity_state		# $t0 = gravity_state
 	addi $t1, $zero, -1
@@ -83,7 +84,7 @@ if_gravity:
 check_key:	
 	li $t9, 0xffff0000  
 	lw $t8, 0($t9) 
-	bne $t8, 1, main_while
+	bne $t8, 1, end_while
 keypress_happened:
 	lw $t2, 4($t9) # this assumes $t9 is set to 0xfff0000 from before 
 while_not_p:
@@ -109,10 +110,10 @@ respond_to_w:
 	jal buzz_jump
 	j end_while
 end_while:
-	lw $t0, bottom
-	beq $s0, $t0, reset_val
-	jal erase_buzz
-	jal draw_buzz
+	lw $t0, bottom			# $t0 = bottom
+	beq $s0, $t0, reset_val		# if old bottom equals new bottom no change
+	jal erase_buzz			# erase old buzz
+	jal draw_buzz			# draw new buzz
 reset_val:
 	jal bottom_check
 	
@@ -145,11 +146,12 @@ move_right:
 	addi $t3, $t0, -2560	# $t3= top right
 	li $t1, 0x000000
 	
-while_right:	beq $t0, $t3, right
-		lw $t2, 0($t0)
-		bne $t2, $t1, move_right_end
-		addi $t0, $t0, -256
-		j while_right
+while_right:	
+	beq $t0, $t3, right
+	lw $t2, 0($t0)
+	bne $t2, $t1, move_right_end
+	addi $t0, $t0, -256
+	j while_right
 	
 right:
 	lw $t0, bottom		# t0 = bottom
@@ -275,8 +277,7 @@ top_true:
 	addi $v0, $zero, 1
 top_check_end:
 	jr $ra
-
-		
+	
 draw_platform:
 	li $t1, 0xffffff 	# $t1 stores the white colour code
 	
@@ -746,11 +747,9 @@ draw_alien:
 buzz_jump: 
 	addi $sp, $sp, -4		# save $ra onto the stack
 	sw $ra, 0($sp)
-	
-	jal erase_buzz			# call erase_buzz
-	
+
 	jal top_check
-	bne $v0, $zero, jump_thirt
+	bne $v0, $zero, jump_elev
 	
 	lw $t1, bottom			# $t1 = bottom
 	lw $t2, jump_state		# $t2 = jump_state
@@ -778,16 +777,15 @@ buzz_jump:
 	addi $t3, $zero, 7
 	beq $t2, $t3, jump_seven
 
+	addi $t3, $zero, 8
+	beq $t2, $t3, jump_eight
+	
 	addi $t3, $zero, 9
 	beq $t2, $t3, jump_nine
 	
 	addi $t3, $zero, 11
 	beq $t2, $t3, jump_elev
-	
-	addi $t3, $zero, 13
-	beq $t2, $t3, jump_thirt
-	
-	jal draw_buzz
+
 	j increment		#not equal to any of above jump states, jump to increment
 jump_zero:	
 	jal move_up
@@ -795,85 +793,68 @@ jump_zero:
 	jal move_up
 	jal move_up
 	jal move_up
-	
-	jal draw_buzz
-	
+
 	j increment
 jump_one:
 	jal move_up
 	jal move_up
 	jal move_up
 	jal move_up
-	
-	jal draw_buzz
-	
+
 	j increment
 	
 jump_two:
 	jal move_up
 	jal move_up
 	jal move_up
-	jal draw_buzz
 	
 	j increment
 	
 jump_three:
 	jal move_up
 	jal move_up
-	jal draw_buzz
 	
 	j increment
 	
 jump_four:
 	jal move_up
 	jal move_up
-	jal draw_buzz
 	
 	j increment
 
 jump_five:
 	jal move_up
-	jal draw_buzz
 
 	j increment
 
 jump_six:
 	jal move_up
-	jal draw_buzz
 
 	j increment
 
 jump_seven:
 	jal move_up
-	jal draw_buzz
+
+	j increment
+	
+jump_eight:
+	jal move_up
 
 	j increment
 	
 jump_nine:
 	jal move_up
-	jal draw_buzz
 
 	j increment
-	
+
 jump_elev:
-	jal move_up
-	jal draw_buzz
-
-	j increment
-jump_thirt:
-	jal draw_buzz
 	addi $t2, $zero, -1	# $t2 = -1
 	la $t0, jump_state	# $t0 = address of jump_state
 	sw $t2, 0($t0)		# jump_state = -1
 	
 	la $t0, gravity_state
 	sw $zero, 0($t0)	#gravity_state = 0
-	
-	# Printing out the number
-    	li $v0, 1
-    	li $a0, 13
-    	syscall
-	
+
 	j end_jump
 increment:
 	lw $t2, jump_state	# $t2 = jump_state
@@ -889,11 +870,9 @@ buzz_gravity:
 	addi $sp, $sp, -4		# save $ra onto the stack
 	sw $ra, 0($sp)
 	
-	jal erase_buzz			# call erase_buzz
-	
-	
 	jal bottom_check
 	bne $v0, $zero, bottom_bound
+	
 	li $v0, 1
     	li $a0, 9
     	syscall
@@ -901,15 +880,16 @@ buzz_gravity:
 	lw $t1, bottom			# $t1 = bottom
 	lw $t2, gravity_state		# $t2 = jump_state
 	
-# Printing out the number
-    	li $v0, 1
-    	move $a0, $t2
-    	syscall	
-	
 	beq $t2, $zero, gravity_zero	# if jump_state == 0, go to jump_zero
+	
+	addi $t3, $zero, 1
+	beq $t2, $t3, gravity_one
 	
 	addi $t3, $zero, 2
 	beq $t2, $t3, gravity_two
+	
+	addi $t3, $zero, 3
+	beq $t2, $t3, gravity_three
 	
 	addi $t3, $zero, 4
 	beq $t2, $t3, gravity_four
@@ -924,92 +904,66 @@ buzz_gravity:
 	beq $t2, $t3, gravity_seven
 	
 	addi $t3, $zero, 8
-	beq $t2, $t3, gravity_eight
+	bge $t2, $t3, gravity_eight
 	
-	addi $t3, $zero, 9
-	beq $t2, $t3, gravity_nine
-	
-	addi $t3, $zero, 10
-	beq $t2, $t3, gravity_ten
-	
-	addi $t3, $zero, 11
-	bge $t2, $t3, gravity_elev
-	
-	jal draw_buzz
 	j gravity_increment		#not equal to any of above gravity states, jump to increment
 gravity_zero:	
 	jal move_down
-	jal draw_buzz
+	
+	j gravity_increment
+
+gravity_one:	
+	jal move_down
 	
 	j gravity_increment
 
 gravity_two:
 	jal move_down
-	jal draw_buzz
 	
 	j gravity_increment
 	
+gravity_three:	
+	jal move_down
+	
+	j gravity_increment
+
 gravity_four:
 	jal move_down
-	jal draw_buzz
+	jal move_down
 	
 	j gravity_increment
 	
 gravity_five:
 	jal move_down
-	jal draw_buzz
+	jal move_down
 	
 	j gravity_increment
 	
 gravity_six:
 	jal move_down
-	jal draw_buzz
+	jal move_down
+	jal move_down
 	
 	j gravity_increment
 	
 gravity_seven:
 	jal move_down
 	jal move_down
-	jal draw_buzz
+	jal move_down
+	jal move_down
 	
 	j gravity_increment
 
 gravity_eight:
 	jal move_down
 	jal move_down
-	jal draw_buzz
-
-	j gravity_increment
-
-gravity_nine:
 	jal move_down
 	jal move_down
 	jal move_down
-	jal draw_buzz
-
-	j gravity_increment
-
-gravity_ten:
-	jal move_down
-	jal move_down
-	jal move_down
-	jal move_down
-	jal draw_buzz
-
-	j gravity_increment
-	
-gravity_elev:
-	jal move_down
-	jal move_down
-	jal move_down
-	jal move_down
-	jal move_down
-	jal draw_buzz
 
 	j end_gravity
 
 bottom_bound:
-	jal draw_buzz
 	addi $t2, $zero, -1	# $t2 = -1
 	la $t0, gravity_state	# $t0 = address of gravity_state
 	sw $t2, 0($t0)		# gravity_state = -1

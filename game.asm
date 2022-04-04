@@ -50,18 +50,22 @@
 
 bottom: .word 15620
 state: .word 1
-ground: .word 16132
+ground: .word 16128
 jump_state: .word -1
 gravity_state: .word -1
+health_end: .word 760
+health_state: 6
 .text 
  li $t0, BASE_ADDRESS # $t0 stores the base address for display 
 
  
 .globl main
 main:	
+	jal draw_health
+	jal decrease_health
+	jal decrease_health
 	jal draw_buzz
 	#jal draw_alien
-	
 	jal draw_platform
 
 main_while:
@@ -129,7 +133,8 @@ reset_val:
 	la $t1, gravity_state
 	sw $zero, 0($t1)
 	j main_while
-j END
+
+
 
 move_right:
 	lw $t0, bottom		# $t0 = bottom
@@ -162,6 +167,7 @@ right:
 move_right_end:
 	jr $ra	
 
+
 move_left:
 	lw $t0, bottom		# t0 = bottom
 	addi $t4, $zero, 256
@@ -190,7 +196,8 @@ left:
 
 move_left_end:
 	jr $ra
-	
+
+		
 move_up:	
 	lw $t0, bottom		# $t0 = bottom
 	addi $t0, $t0, BASE_ADDRESS
@@ -214,6 +221,7 @@ up:
 move_up_end:
 	jr $ra
 	
+	
 move_down:	
 	lw $t0, bottom		# $t0 = bottom
 	addi $t0, $t0, BASE_ADDRESS
@@ -236,6 +244,7 @@ down:
 
 move_down_end:
 	jr $ra		
+	
 	
 bottom_check:
 	lw $t0, bottom		# $t0 = bottom
@@ -277,64 +286,52 @@ top_true:
 	addi $v0, $zero, 1
 top_check_end:
 	jr $ra
-	
+
+		
 draw_platform:
 	li $t1, 0xffffff 	# $t1 stores the white colour code
 	
 	lw, $t0, ground
 	addi $t0, $t0, BASE_ADDRESS
 	
-	sw $t1, 0($t0)
-	sw $t1, 4($t0)
-	sw $t1, 8($t0)
-	sw $t1, 12($t0)
-	sw $t1, 16($t0)
-	sw $t1, 20($t0)
-	sw $t1, 24($t0)
-	sw $t1, 28($t0)
-	sw $t1, 32($t0)
-	sw $t1, 36($t0)
-	sw $t1, 40($t0)
-	sw $t1, 44($t0)
-	
-	addi $t0, $t0, -256
+	addi $t2, $zero, 16384
+	addi $t2, $t2, BASE_ADDRESS
 
+platform_while_1:
 	sw $t1, 0($t0)
-	sw $t1, 4($t0)
-	sw $t1, 8($t0)
-	sw $t1, 12($t0)
-	sw $t1, 16($t0)
-	sw $t1, 20($t0)
-	sw $t1, 24($t0)
-	sw $t1, 28($t0)
-	sw $t1, 32($t0)
-	sw $t1, 36($t0)
-	sw $t1, 40($t0)
-	sw $t1, 44($t0)
+	addi $t0, $t0, 4
+	bne $t0, $t2, platform_while_1
+
+	addi $t0, $t0, -260
+	addi $t2, $t2, -516
 	
-	addi $t0, $t0, -1716
-	
+platform_while_2:
 	sw $t1, 0($t0)
-	sw $t1, 4($t0)
-	sw $t1, 8($t0)
-	sw $t1, 12($t0)
-	sw $t1, 16($t0)
-	sw $t1, 20($t0)
-	sw $t1, 24($t0)
-	sw $t1, 28($t0)
-	sw $t1, 32($t0)
+	addi $t0, $t0, -4
+	bne $t0, $t2, platform_while_2
+	#addi $t0, $t0, -1716
 	
-	addi $t0, $t0, -256
+	#sw $t1, 0($t0)
+	#sw $t1, 4($t0)
+	#sw $t1, 8($t0)
+	#sw $t1, 12($t0)
+	#sw $t1, 16($t0)
+	#sw $t1, 20($t0)
+	#sw $t1, 24($t0)
+	#sw $t1, 28($t0)
+	#sw $t1, 32($t0)
 	
-	sw $t1, 0($t0)
-	sw $t1, 4($t0)
-	sw $t1, 8($t0)
-	sw $t1, 12($t0)
-	sw $t1, 16($t0)
-	sw $t1, 20($t0)
-	sw $t1, 24($t0)
-	sw $t1, 28($t0)
-	sw $t1, 32($t0)
+	#addi $t0, $t0, -256
+	
+	#sw $t1, 0($t0)
+	#sw $t1, 4($t0)
+	#sw $t1, 8($t0)
+	#sw $t1, 12($t0)
+	#sw $t1, 16($t0)
+	#sw $t1, 20($t0)
+	#sw $t1, 24($t0)
+	#sw $t1, 28($t0)
+	#sw $t1, 32($t0)
 	
 	jr $ra
 	
@@ -629,6 +626,204 @@ draw_buzz_right:
 	sw $t5, 12($t7)
 	sw $t5, 16($t7)
 
+	jr $ra
+	
+draw_health:
+	li $t0, 0xff0000	# $t0 stores red colour code
+	li $t2, 0xffffff	# $t2 stores white colour code
+	lw $t1, health_end
+	addi $t1, $t1, BASE_ADDRESS
+	
+	addi $t1, $t1, -4	# start of health
+	
+	sw $t0, 0($t1)		# first layer
+	sw $t0, -4($t1)
+	sw $t0, -12($t1)
+	sw $t0, -16($t1)
+	
+	addi $t1, $t1, -32
+	sw $t0, 0($t1)
+	sw $t0, -4($t1)
+	sw $t0, -12($t1)
+	sw $t0, -16($t1)
+	
+	addi $t1, $t1, -32
+	sw $t0, 0($t1)
+	sw $t0, -4($t1)
+	sw $t0, -12($t1)
+	sw $t0, -16($t1)
+	
+	
+	addi $t1, $t1, 324	# second layer
+	sw $t0, 0($t1)
+	sw $t2, -4($t1)
+	sw $t0, -8($t1)
+	sw $t0, -12($t1)
+	sw $t0, -16($t1)
+	sw $t0, -20($t1)
+	sw $t0, -24($t1)
+
+	addi $t1, $t1, -32
+	sw $t0, 0($t1)
+	sw $t2, -4($t1)
+	sw $t0, -8($t1)
+	sw $t0, -12($t1)
+	sw $t0, -16($t1)
+	sw $t0, -20($t1)
+	sw $t0, -24($t1)
+
+	addi $t1, $t1, -32
+	sw $t0, 0($t1)
+	sw $t2, -4($t1)
+	sw $t0, -8($t1)
+	sw $t0, -12($t1)
+	sw $t0, -16($t1)
+	sw $t0, -20($t1)
+	sw $t0, -24($t1)
+	
+	addi $t1, $t1, 320	# third layer
+	sw $t0, 0($t1)
+	sw $t0, -4($t1)
+	sw $t0, -8($t1)
+	sw $t0, -12($t1)
+	sw $t0, -16($t1)
+	sw $t0, -20($t1)
+	sw $t0, -24($t1)
+
+	addi $t1, $t1, -32
+	sw $t0, 0($t1)
+	sw $t0, -4($t1)
+	sw $t0, -8($t1)
+	sw $t0, -12($t1)
+	sw $t0, -16($t1)
+	sw $t0, -20($t1)
+	sw $t0, -24($t1)
+
+	addi $t1, $t1, -32
+	sw $t0, 0($t1)
+	sw $t0, -4($t1)
+	sw $t0, -8($t1)
+	sw $t0, -12($t1)
+	sw $t0, -16($t1)
+	sw $t0, -20($t1)
+	sw $t0, -24($t1)
+	
+	addi $t1, $t1, 316	# fourth layer
+	sw $t0, 0($t1)
+	sw $t0, -4($t1)
+	sw $t0, -8($t1)
+	sw $t0, -12($t1)
+	sw $t0, -16($t1)
+	
+	addi $t1, $t1, -32
+	sw $t0, 0($t1)
+	sw $t0, -4($t1)
+	sw $t0, -8($t1)
+	sw $t0, -12($t1)
+	sw $t0, -16($t1)
+	
+	addi $t1, $t1, -32
+	sw $t0, 0($t1)
+	sw $t0, -4($t1)
+	sw $t0, -8($t1)
+	sw $t0, -12($t1)
+	sw $t0, -16($t1)
+	
+	addi $t1, $t1, 316	# fourth layer
+	sw $t0, 0($t1)
+	sw $t0, -4($t1)
+	sw $t0, -8($t1)
+	
+	addi $t1, $t1, -32
+	sw $t0, 0($t1)
+	sw $t0, -4($t1)
+	sw $t0, -8($t1)
+	
+	addi $t1, $t1, -32
+	sw $t0, 0($t1)
+	sw $t0, -4($t1)
+	sw $t0, -8($t1)
+	
+	addi $t1, $t1, 316	# fourth layer
+	sw $t0, 0($t1)
+	
+	addi $t1, $t1, -32
+	sw $t0, 0($t1)
+	
+	addi $t1, $t1, -32
+	sw $t0, 0($t1)
+
+	jr $ra
+	
+decrease_health:
+	lw $t0, health_state
+	
+	li $t4, 0x000000
+	lw $t2, health_end
+	addi $t2, $t2, BASE_ADDRESS
+	addi $t3, $t2, 1536
+	
+	addi $t1, $zero, 6
+	beq $t0, $t1, decrease_six
+	
+	addi $t1, $zero, 5
+	beq $t0, $t1, decrease_five
+	
+	addi $t1, $zero, 4
+	beq $t0, $t1, decrease_four
+	
+	addi $t1, $zero, 3
+	beq $t0, $t1, decrease_three
+	
+	addi $t1, $zero, 2
+	beq $t0, $t1, decrease_two
+	
+	addi $t1, $zero, 1
+	beq $t0, $t1, decrease_one
+	
+decrease_six:
+	
+while_dec_six:
+	beq $t3, $t2, health_end_6
+	sw $t4, 0($t2)
+	sw $t4, -4($t2)
+	sw $t4, -8($t2)
+	addi $t2, $t2, 256
+	j while_dec_six
+	
+health_end_6:
+	la $t5, health_end
+	lw $t6, health_end
+	addi $t6, $t6, -12
+	sw $t6, 0($t5)
+	
+	j decrement
+decrease_five:
+	
+while_dec_five:
+	beq $t3, $t2, health_end_5
+	sw $t4, 0($t2)
+	sw $t4, -4($t2)
+	sw $t4, -8($t2)
+	sw $t4, -12($t2)
+	addi $t2, $t2, 256
+	j while_dec_five
+health_end_5:
+	la $t5, health_end
+	lw $t6, health_end
+	addi $t6, $t6, -20
+	sw $t6, 0($t5)
+	
+	j decrement
+decrease_four:
+decrease_three:
+decrease_two:
+decrease_one:
+decrement:
+	la $t5, health_state
+	addi $t0, $t0, -1
+	sw $t0, 0($t5)
+decrease_end:
 	jr $ra
 erase_buzz:
  	li $t0, BASE_ADDRESS # $t0 stores the base address for display
@@ -980,7 +1175,8 @@ end_gravity:
 	addi $sp, $sp, 4
 	jr $ra
 
-END:
+END:	
+	sw $t0, 0($t1) 
  	li $v0, 1
  	syscall
  	li $v0, 10 # terminate the program gracefully 

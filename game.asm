@@ -48,25 +48,41 @@
 
 .data
 
-bottom: .word 15620
+bottom: .word 15364
 state: .word 1
 ground: .word 16128
 jump_state: .word -1
 gravity_state: .word -1
-health_end: .word 760
-health_state: 6
+health_end: .word 504
+health_state: .word 6
+bottom_alien: .word 15420
+double_state: .word 0
+damage_count: .word 0
+bottom_woody: .word 4864
 .text 
  li $t0, BASE_ADDRESS # $t0 stores the base address for display 
 
  
 .globl main
 main:	
+	la $t0, bottom			# setting buzz to initial starting position
+	addi $t1, $zero, 15364
+	sw $t1, 0($t0)
+	
+	la $t0, health_state
+	addi $t1, $zero, 6
+	sw $t1, 0($t0)
+	
+	la $t0, health_end
+	addi $t1, $zero, 504
+	sw $t1, 0($t0)	
+	
+	jal clear_screen
 	jal draw_health
-	jal decrease_health
-	jal decrease_health
 	jal draw_buzz
-	#jal draw_alien
-	jal draw_platform
+	jal draw_alien
+	jal draw_ground
+	jal draw_woody
 
 main_while:
 	lw $s0, bottom
@@ -92,7 +108,7 @@ check_key:
 keypress_happened:
 	lw $t2, 4($t9) # this assumes $t9 is set to 0xfff0000 from before 
 while_not_p:
-	beq $t2, 0x70, END  # ASCII code of 'p' is 0x70
+	beq $t2, 0x70, main  # ASCII code of 'p' is 0x70
 if_d:	beq $t2, 0x64, respond_to_d   # ASCII code of 'd' is 0x64 or 97
 if_a:	beq $t2, 0x61, respond_to_a
 if_w:	beq $t2, 0x77, respond_to_w
@@ -100,35 +116,79 @@ if_w:	beq $t2, 0x77, respond_to_w
 respond_to_d:
 	jal move_right
 	jal move_right
+	jal move_right
 	j end_while
 
 respond_to_a:
 	jal move_left
 	jal move_left
+	jal move_left
 	j end_while
 respond_to_w:
-	jal bottom_check
-	beq $v0, $zero, main_while
+	beq $s1, $zero, double_jump	#if not on ground, double_jump check
 	la $t0, jump_state
 	sw $zero, 0($t0)
 	jal buzz_jump
 	j end_while
+double_jump:
+	lw $t0, jump_state
+	addi $t1, $zero, -1
+	bne $t0, $t1, check_double	# if in the middle of jump
+	
+	lw $t0, gravity_state
+	beq $t0, $t1, end_while		# if not in the middle of gravity end_while
+	
+check_double:
+	lw $t0, double_state
+	bne $t0, $zero, end_while 	# if it already double jump
+	
+	la $t0, double_state		# change double_state to 1
+	li $t1, 1
+	sw $t1, 0($t0)
+    	
+	la $t0, jump_state
+	li $t1, 3 			# set jump state to 4
+	sw $t1, 0($t0)
+	jal buzz_jump
+
 end_while:
 	lw $t0, bottom			# $t0 = bottom
 	beq $s0, $t0, reset_val		# if old bottom equals new bottom no change
 	jal erase_buzz			# erase old buzz
 	jal draw_buzz			# draw new buzz
 reset_val:
+	lw $t0, damage_count		# $t0 = damage_count
+	beq $t0, $zero, damage		# if damage_count is 0 check for damage
+	addi $t0, $t0, -1		# else decrement damage_count
+	la $t1, damage_count
+	sw $t0, 0($t1)
+	lw $t0, damage_count
+	bne $t0, $zero, platform
+	jal erase_buzz
+	jal draw_buzz
+	j platform
+damage:
+	jal check_damage		# check for damage
+	beq $v1, $zero, platform	# if no damage then go to platform check
+	jal decrease_health		# else decrease health
+	la $t1, damage_count		# set damage_count to 15
+	addi $t0, $zero, 15
+	sw $t0, 0($t1)
+	jal erase_buzz
+	jal draw_buzz
+platform:
 	jal bottom_check
 	
-	bne $v0, $zero, main_while
+	add $s1, $zero, $v0		# $s1 = $v0
 	
-	addi $t0, $zero, -1
-	lw $t1, jump_state
-	bne $t1, $t0, main_while
+	bne $v0, $zero, main_while	# if there is a platform beneath me go to main while
+	
+	addi $t0, $zero, -1		
+	lw $t1, jump_state		
+	bne $t1, $t0, main_while	# if not in the middle of a jump go to main while
 	
 	lw $t1, gravity_state
-	bne $t1, $t0, main_while
+	bne $t1, $t0, main_while	# if not in the middle of gravity go to main while
 	
 	la $t1, gravity_state
 	sw $zero, 0($t1)
@@ -288,8 +348,8 @@ top_check_end:
 	jr $ra
 
 		
-draw_platform:
-	li $t1, 0xffffff 	# $t1 stores the white colour code
+draw_ground:
+	li $t1, 0xc0c0c0	# $t1 stores the white colour code
 	
 	lw, $t0, ground
 	addi $t0, $t0, BASE_ADDRESS
@@ -297,32 +357,239 @@ draw_platform:
 	addi $t2, $zero, 16384
 	addi $t2, $t2, BASE_ADDRESS
 
-platform_while_1:
+ground_while_1:
 	sw $t1, 0($t0)
 	addi $t0, $t0, 4
-	bne $t0, $t2, platform_while_1
+	bne $t0, $t2, ground_while_1
 
-	addi $t0, $t0, -260
-	addi $t2, $t2, -516
-	
-platform_while_2:
+addi $t0, $t0, -260
+addi $t2, $t2, -516
+
+ground_while_2:
 	sw $t1, 0($t0)
 	addi $t0, $t0, -4
-	bne $t0, $t2, platform_while_2
-	#addi $t0, $t0, -1716
+	bne $t0, $t2, ground_while_2
+
+addi $t2, $t2, -256
+addi $t0, $t0, -252
+li $t1, 0x808080
+addi $t2, $t2, 136
 	
-	#sw $t1, 0($t0)
-	#sw $t1, 4($t0)
-	#sw $t1, 8($t0)
-	#sw $t1, 12($t0)
-	#sw $t1, 16($t0)
-	#sw $t1, 20($t0)
-	#sw $t1, 24($t0)
-	#sw $t1, 28($t0)
-	#sw $t1, 32($t0)
+ground_while_3:
+	sw $t1, 0($t0)
+	addi $t0, $t0, 4
+	bne $t0, $t2, ground_while_3
 	
+addi $t2, $t2, 124
+li $t1, 0xc0c0c0
+
+ground_while_4:					# stair bottom
+	sw $t1, 0($t0)
+	addi $t0, $t0, 4
+	bne $t0, $t2, ground_while_4
+
+#second layer stair
+li $t1, 0x808080		# dark grey
+addi $t2, $t2, -384		# stair next
+	
+sw $t1, 0($t2)
+addi $t0, $t0, -380
+li $t1, 0xc0c0c0		# light grey
+addi $t2, $t2, 128
+
+ground_while_5:
+	sw $t1, 0($t0)
+	addi $t0, $t0, 4
+	bne $t0, $t2, ground_while_5
+
+#third layer stair	
+li $t1, 0x808080		# dark grey
+addi $t2, $t2, -384		# stair next
+	
+sw $t1, 0($t2)
+addi $t0, $t0, -380
+li $t1, 0xc0c0c0		# light grey
+addi $t2, $t2, 128
+
+
+ground_while_6:
+	sw $t1, 0($t0)
+	addi $t0, $t0, 4
+	bne $t0, $t2, ground_while_6
+
+#fourth layer stair
+li $t1, 0x808080		# dark grey
+addi $t2, $t2, -384		# stair next
+sw $t1, 0($t2)
+sw $t1, 4($t2)
+sw $t1, 8($t2)
+sw $t1, 12($t2)
+sw $t1, 16($t2)
+
+addi $t2, $t2, 128
+addi $t0, $t0, -364
+li $t1, 0xc0c0c0		# light grey
+	
+ground_while_7:
+	sw $t1, 0($t0)
+	addi $t0, $t0, 4
+	bne $t0, $t2, ground_while_7
+	
+# fifth layer stair
+li $t1, 0x808080		# dark grey
+addi $t2, $t2, -368
+sw $t1, 0($t2)
+
+li $t1, 0xc0c0c0		# light grey
+addi $t0, $t0, -364
+addi $t2, $t2, 112
+ground_while_8:
+	sw $t1, 0($t0)
+	addi $t0, $t0, 4
+	bne $t0, $t2, ground_while_8
+	
+# sixth layer stair
+li $t1, 0x808080		# dark grey
+addi $t2, $t2, -368
+sw $t1, 0($t2)
+
+li $t1, 0xc0c0c0		# light grey
+addi $t0, $t0, -364
+addi $t2, $t2, 112
+ground_while_9:
+	sw $t1, 0($t0)
+	addi $t0, $t0, 4
+	bne $t0, $t2, ground_while_9
+	
+# seventh layer stair
+li $t1, 0x808080		# dark grey
+addi $t2, $t2, -368
+sw $t1, 0($t2)
+sw $t1, 4($t2)
+sw $t1, 8($t2)
+sw $t1, 12($t2)
+sw $t1, 16($t2)
+
+li $t1, 0xc0c0c0		# light grey
+addi $t0, $t0, -348
+addi $t2, $t2, 112
+ground_while_10:
+	sw $t1, 0($t0)
+	addi $t0, $t0, 4
+	bne $t0, $t2, ground_while_10
+	
+# eighth layer stair
+li $t1, 0x808080		# dark grey
+addi $t2, $t2, -352
+sw $t1, 0($t2)
+
+li $t1, 0xc0c0c0		# light grey
+addi $t0, $t0, -348
+addi $t2, $t2, 96
+ground_while_11:
+	sw $t1, 0($t0)
+	addi $t0, $t0, 4
+	bne $t0, $t2, ground_while_11
+	
+# ninth layer stair
+li $t1, 0x808080		# dark grey
+addi $t2, $t2, -352
+sw $t1, 0($t2)
+
+li $t1, 0xc0c0c0		# light grey
+addi $t0, $t0, -348
+addi $t2, $t2, 96
+ground_while_12:
+	sw $t1, 0($t0)
+	addi $t0, $t0, 4
+	bne $t0, $t2, ground_while_12
+
+# tenth layer stair
+li $t1, 0x808080		# dark grey
+addi $t0, $t0, -352
+addi $t2, $t2, -256
+ground_while_13:
+	sw $t1, 0($t0)
+	addi $t0, $t0, 4
+	bne $t0, $t2, ground_while_13
+	
+	li $t1, 0xc0c0c0
+	addi $t0, $t0, -4964
+	
+	sw $t1, 0($t0)
+	sw $t1, -4($t0)
+	sw $t1, -8($t0)
+	sw $t1, -12($t0)
+	sw $t1, -16($t0)
+	sw $t1, -20($t0)
+	sw $t1, -24($t0)
+	sw $t1, -28($t0)
+	sw $t1, -32($t0)
+	sw $t1, -36($t0)
+	
+	addi $t0, $t0, -256
+	li $t1, 0x808080
+	
+	sw $t1, 0($t0)
+	sw $t1, -4($t0)
+	sw $t1, -8($t0)
+	sw $t1, -12($t0)
+	sw $t1, -16($t0)
+	sw $t1, -20($t0)
+	sw $t1, -24($t0)
+	sw $t1, -28($t0)
+	sw $t1, -32($t0)
+	sw $t1, -36($t0)
+	
+	addi $t0, $t0, -3228
+	sw $t1, 0($t0)
+	sw $t1, 4($t0)
+	sw $t1, 8($t0)
+	sw $t1, 12($t0)
+	sw $t1, 16($t0)
+	sw $t1, 20($t0)
+	sw $t1, 24($t0)
+	sw $t1, 28($t0)
+	sw $t1, 32($t0)
+	sw $t1, 36($t0)
+	sw $t1, 40($t0)
+	sw $t1, 44($t0)
+	sw $t1, 48($t0)
+	sw $t1, 52($t0)
+	sw $t1, 56($t0)
+	sw $t1, 60($t0)
+	sw $t1, 64($t0)
+	sw $t1, 68($t0)
+	sw $t1, 72($t0)
+	sw $t1, 76($t0)
+	sw $t1, 80($t0)
+	sw $t1, 84($t0)
+	
+	addi $t0, $t0, 256
+	li $t1, 0xc0c0c0
+	sw $t1, 0($t0)
+	sw $t1, 4($t0)
+	sw $t1, 8($t0)
+	sw $t1, 12($t0)
+	sw $t1, 16($t0)
+	sw $t1, 20($t0)
+	sw $t1, 24($t0)
+	sw $t1, 28($t0)
+	sw $t1, 32($t0)
+	sw $t1, 36($t0)
+	sw $t1, 40($t0)
+	sw $t1, 44($t0)
+	sw $t1, 48($t0)
+	sw $t1, 52($t0)
+	sw $t1, 56($t0)
+	sw $t1, 60($t0)
+	sw $t1, 64($t0)
+	sw $t1, 68($t0)
+	sw $t1, 72($t0)
+	sw $t1, 76($t0)
+	sw $t1, 80($t0)
+	sw $t1, 84($t0)
 	#addi $t0, $t0, -256
-	
 	#sw $t1, 0($t0)
 	#sw $t1, 4($t0)
 	#sw $t1, 8($t0)
@@ -347,6 +614,9 @@ draw_buzz:
 	lw $t7, bottom
 	add $t7, $t0, $t7	#at bottom pixel now
 	
+	lw $t0, damage_count
+	bne $t0, $zero, draw_buzz_red	#if injured then draw buzz red
+	
 	addi $t7, $t7, 8	#at feet
 	sw $t2, 0($t7)
 	sw $t2, 4($t7)
@@ -431,203 +701,232 @@ draw_buzz:
 	sw $t5, 8($t7)
 	sw $t5, 12($t7)
 	sw $t5, 16($t7)
-
-	jr $ra
-
-draw_buzz_left:
- 	li $t0, BASE_ADDRESS # $t0 stores the base address for display
- 	li $t1, 0xff0000	# $t1 stores the red colour code 
- 	li $t2, 0x00ff00	# $t2 stores the green colour code 
- 	li $t3, 0xffffff	# $t3 stores the whitecolour code 
- 	li $t4, 0x000000	# $t4 stores the black colour code 
- 	li $t5, 0xa252c6	# $t5 stores purple
- 	li $t6, 0xffd9b4	# $t6 stores peach
- 	 
-	lw $t7, bottom
-	add $t7, $t0, $t7	#at bottom pixel now
 	
+	j draw_buzz_end
+draw_buzz_red:
 	addi $t7, $t7, 8	#at feet
-	sw $t2, 0($t7)
-	sw $t2, 4($t7)
+	sw $t1, 0($t7)
+	sw $t1, 4($t7)
+	sw $t1, 12($t7)
+	sw $t1, 16($t7)
 	
 	addi, $t7, $t7, -256	#second
-	sw $t3, 0($t7)
-	sw $t3, 4($t7)
-	sw $t3, 8($t7)
-	sw $t3, 12($t7)
-	sw $t3, 16($t7)
+	sw $t1, 0($t7)
+	sw $t1, 4($t7)
+	sw $t1, 8($t7)
+	sw $t1, 12($t7)
+	sw $t1, 16($t7)
 	
 	addi, $t7, $t7, -256	#third
-	sw $t2, 0($t7)
-	sw $t4, 4($t7)
-	sw $t4, 8($t7)
-	sw $t4, 12($t7)
-	sw $t2, 16($t7)
+	sw $t1, 0($t7)
+	sw $t1, 4($t7)
+	sw $t1, 8($t7)
+	sw $t1, 12($t7)
+	sw $t1, 16($t7)
 	
 	addi, $t7, $t7, -256	#fourth
-	sw $t3, 0($t7)
-	sw $t3, 4($t7)
-	sw $t3, 8($t7)
-	sw $t3, 12($t7)
-	sw $t3, 16($t7)	 
-	
-	li $t4, 0x0000ff 	# $t4 stores the blue color code
+	sw $t1, 0($t7)
+	sw $t1, 4($t7)
+	sw $t1, 8($t7)
+	sw $t1, 12($t7)
+	sw $t1, 16($t7)	 
+
 	addi $t7, $t7, -264	#sixth
-	sw $t3, 0($t7)
-	sw $t2, 4($t7)
-	sw $t3, 8($t7)
-	sw $t4, 12($t7)
-	sw $t2, 16($t7)
+	sw $t1, 0($t7)
+	sw $t1, 4($t7)
+	sw $t1, 8($t7)
+	sw $t1, 12($t7)
+	sw $t1, 16($t7)
 	sw $t1, 20($t7)
-	sw $t3, 24($t7)
-	sw $t2, 28($t7)
-	sw $t3, 32($t7)
+	sw $t1, 24($t7)
+	sw $t1, 28($t7)
+	sw $t1, 32($t7)
 	
 	addi $t7, $t7, -256	#seventh
-	sw $t3, 0($t7)
-	sw $t2, 4($t7)
-	sw $t3, 8($t7)
-	sw $t2, 12($t7)
-	sw $t2, 16($t7)
-	sw $t2, 20($t7)
-	sw $t3, 24($t7)
-	sw $t2, 28($t7)
-	sw $t3, 32($t7)
-	
-	addi $t7, $t7, -252	#eigth
-	sw $t5, 0($t7)
-	sw $t6, 4($t7)
-	sw $t6, 8($t7)
-	sw $t6, 12($t7)
-	sw $t6, 16($t7)
-	sw $t6, 20($t7)
-	sw $t5, 24($t7)
-	
-	li $t4, 0x000000	# $t4 stores the black colour code 
-	addi $t7, $t7, -256	#ninth
-	sw $t5, 0($t7)
-	sw $t6, 4($t7)
-	sw $t4, 8($t7)
-	sw $t6, 12($t7)
-	sw $t4, 16($t7)
-	sw $t6, 20($t7)
-	sw $t5, 24($t7)
-	
-	addi $t7, $t7, -256	#tenth
-	sw $t5, 0($t7)
-	sw $t6, 4($t7)
-	sw $t6, 8($t7)
-	sw $t6, 12($t7)
-	sw $t6, 16($t7)
-	sw $t6, 20($t7)
-	sw $t5, 24($t7)
-
-	addi $t7, $t7, -252	#eleventh
-	sw $t5, 0($t7)
-	sw $t5, 4($t7)
-	sw $t5, 8($t7)
-	sw $t5, 12($t7)
-	sw $t5, 16($t7)
-
-	jr $ra
-	
-draw_buzz_right:
- 	li $t0, BASE_ADDRESS # $t0 stores the base address for display
- 	li $t1, 0xff0000	# $t1 stores the red colour code 
- 	li $t2, 0x00ff00	# $t2 stores the green colour code 
- 	li $t3, 0xffffff	# $t3 stores the whitecolour code 
- 	li $t4, 0x000000	# $t4 stores the black colour code 
- 	li $t5, 0xa252c6	# $t5 stores purple
- 	li $t6, 0xffd9b4	# $t6 stores peach
- 	 
-	lw $t7, bottom
-	add $t7, $t0, $t7	#at bottom pixel now
-	
-	addi $t7, $t7, 8	#at feet
-	sw $t2, 12($t7)
-	sw $t2, 16($t7)
-	
-	addi, $t7, $t7, -256	#second
-	sw $t3, 0($t7)
-	sw $t3, 4($t7)
-	sw $t3, 8($t7)
-	sw $t3, 12($t7)
-	sw $t3, 16($t7)
-	
-	addi, $t7, $t7, -256	#third
-	sw $t2, 0($t7)
-	sw $t4, 4($t7)
-	sw $t4, 8($t7)
-	sw $t4, 12($t7)
-	sw $t2, 16($t7)
-	
-	addi, $t7, $t7, -256	#fourth
-	sw $t3, 0($t7)
-	sw $t3, 4($t7)
-	sw $t3, 8($t7)
-	sw $t3, 12($t7)
-	sw $t3, 16($t7)	 
-	
-	li $t4, 0x0000ff 	# $t4 stores the blue color code
-	addi $t7, $t7, -264	#sixth
-	sw $t3, 0($t7)
-	sw $t2, 4($t7)
-	sw $t3, 8($t7)
-	sw $t4, 12($t7)
-	sw $t2, 16($t7)
+	sw $t1, 0($t7)
+	sw $t1, 4($t7)
+	sw $t1, 8($t7)
+	sw $t1, 12($t7)
+	sw $t1, 16($t7)
 	sw $t1, 20($t7)
-	sw $t3, 24($t7)
-	sw $t2, 28($t7)
-	sw $t3, 32($t7)
-	
-	addi $t7, $t7, -256	#seventh
-	sw $t3, 0($t7)
-	sw $t2, 4($t7)
-	sw $t3, 8($t7)
-	sw $t2, 12($t7)
-	sw $t2, 16($t7)
-	sw $t2, 20($t7)
-	sw $t3, 24($t7)
-	sw $t2, 28($t7)
-	sw $t3, 32($t7)
+	sw $t1, 24($t7)
+	sw $t1, 28($t7)
+	sw $t1, 32($t7)
 	
 	addi $t7, $t7, -252	#eigth
-	sw $t5, 0($t7)
-	sw $t6, 4($t7)
-	sw $t6, 8($t7)
-	sw $t6, 12($t7)
-	sw $t6, 16($t7)
-	sw $t6, 20($t7)
-	sw $t5, 24($t7)
-	
-	li $t4, 0x000000	# $t4 stores the black colour code 
+	sw $t1, 0($t7)
+	sw $t1, 4($t7)
+	sw $t1, 8($t7)
+	sw $t1, 12($t7)
+	sw $t1, 16($t7)
+	sw $t1, 20($t7)
+	sw $t1, 24($t7)
+ 
 	addi $t7, $t7, -256	#ninth
-	sw $t5, 0($t7)
-	sw $t6, 4($t7)
-	sw $t4, 8($t7)
-	sw $t6, 12($t7)
-	sw $t4, 16($t7)
-	sw $t6, 20($t7)
-	sw $t5, 24($t7)
+	sw $t1, 0($t7)
+	sw $t1, 4($t7)
+	sw $t1, 8($t7)
+	sw $t1, 12($t7)
+	sw $t1, 16($t7)
+	sw $t1, 20($t7)
+	sw $t1, 24($t7)
 	
 	addi $t7, $t7, -256	#tenth
-	sw $t5, 0($t7)
-	sw $t6, 4($t7)
-	sw $t6, 8($t7)
-	sw $t6, 12($t7)
-	sw $t6, 16($t7)
-	sw $t6, 20($t7)
-	sw $t5, 24($t7)
+	sw $t1, 0($t7)
+	sw $t1, 4($t7)
+	sw $t1, 8($t7)
+	sw $t1, 12($t7)
+	sw $t1, 16($t7)
+	sw $t1, 20($t7)
+	sw $t1, 24($t7)
 
 	addi $t7, $t7, -252	#eleventh
-	sw $t5, 0($t7)
-	sw $t5, 4($t7)
-	sw $t5, 8($t7)
-	sw $t5, 12($t7)
-	sw $t5, 16($t7)
-
-	jr $ra
+	sw $t1, 0($t7)
+	sw $t1, 4($t7)
+	sw $t1, 8($t7)
+	sw $t1, 12($t7)
+	sw $t1, 16($t7)
 	
+draw_buzz_end:
+	jr $ra
+
+draw_woody:
+	lw $t0, bottom_woody
+	addi $t0, $t0, BASE_ADDRESS
+	
+	addi $t0, $t0, 8	# now at bottom of woody
+	li $t1, 0xb06500	# stores feet brown and hat brown
+	
+	sw $t1, 0($t0)		# feet
+	sw $t1, 4($t0)
+	sw $t1, 12($t0)
+	sw $t1, 16($t0)
+	
+	addi $t0, $t0, -260	# belt
+	sw $t1, 0($t0)	
+	
+	li $t2, 0x0000ff	# stores blue
+	sw $t2, 4($t0)		
+	sw $t2, 8($t0)
+	sw $t2, 12($t0)
+	sw $t2, 16($t0)
+	sw $t2, 20($t0)
+	
+	addi $t0, $t0, -252
+	sw $t1, 0($t0)		# body
+	sw $t1, 4($t0)
+	sw $t1, 8($t0)
+	sw $t1, 12($t0)
+	sw $t1, 16($t0)
+	
+	addi $t0, $t0, -264
+	li $t3, 0xffd9b4	# peach
+	sw $t3, 0($t0)		# hand
+	
+	li $t2, 0xffff00	# yellow
+	sw $t2, 4($t0)
+	
+	li $t2, 0xffffff	# white
+	sw $t2, 8($t0)
+	
+	li $t2, 0x000000	# black
+	sw $t2, 12($t0)
+
+	li $t2, 0xffff00	# yellow
+	sw $t2, 16($t0)
+	
+	li $t2, 0x000000	# black
+	sw $t2, 20($t0)
+	
+	li $t2, 0xffffff	# white
+	sw $t2, 24($t0)
+	
+	li $t2, 0xffff00	# yellow
+	sw $t2, 28($t0)
+	
+	sw $t3, 32($t0)		# hand
+	
+	addi $t0, $t0, -256
+	sw $t3, 0($t0)
+	
+	li $t2, 0xffff00	# yellow
+	sw $t2, 4($t0)
+	
+	li $t2, 0x000000	# black
+	sw $t2, 8($t0)
+	
+	li $t2, 0xffff00	# yellow
+	sw $t2, 12($t0)
+	sw $t2, 16($t0)
+	sw $t2, 20($t0)
+	
+	li $t2, 0x000000	# black
+	sw $t2, 24($t0)
+	
+	li $t2, 0xffff00	# yellow
+	sw $t2, 28($t0)
+	
+	sw $t3, 32($t0)
+	
+	addi $t0, $t0, -252
+	sw $t3, 0($t0)	
+	sw $t3, 4($t0)		
+	sw $t3, 8($t0)
+	sw $t3, 12($t0)
+	sw $t3, 16($t0)
+	sw $t3, 20($t0)
+	sw $t3, 24($t0)	
+	
+	addi $t0, $t0, -256
+	li $t2, 0x6e260e	# stores hair brown
+	sw $t2, 0($t0)
+	sw $t3, 4($t0)
+	
+	li $t4, 0x000000	# stores black
+	sw $t4, 8($t0)
+	sw $t3, 12($t0)
+	sw $t4, 16($t0)
+	sw $t3, 20($t0)
+	sw $t2, 24($t0)
+	
+	addi $t0, $t0, -256
+	sw $t2, 0($t0)
+	sw $t3, 4($t0)
+	sw $t3, 8($t0)
+	sw $t3, 12($t0)
+	sw $t3, 16($t0)
+	sw $t3, 20($t0)
+	sw $t2, 24($t0)
+	
+	addi $t0, $t0, -260
+	sw $t1, 0($t0)		# hat
+	sw $t1, 4($t0)
+	sw $t1, 8($t0)
+	sw $t1, 12($t0)
+	sw $t1, 16($t0)
+	sw $t1, 20($t0)
+	sw $t1, 24($t0)
+	sw $t1, 28($t0)
+	sw $t1, 32($t0)
+	
+	addi $t0, $t0, -252
+	sw $t1, 0($t0)		# feet
+	sw $t1, 4($t0)
+	sw $t1, 8($t0)
+	sw $t1, 12($t0)
+	sw $t1, 16($t0)
+	sw $t1, 20($t0)
+	sw $t1, 24($t0)
+
+	addi $t0, $t0, -256
+	sw $t1, 0($t0)		# feet
+	sw $t1, 4($t0)
+	sw $t1, 8($t0)
+	sw $t1, 12($t0)
+	sw $t1, 16($t0)
+	sw $t1, 20($t0)
+	sw $t1, 24($t0)
+	jr $ra
 draw_health:
 	li $t0, 0xff0000	# $t0 stores red colour code
 	li $t2, 0xffffff	# $t2 stores white colour code
@@ -656,29 +955,29 @@ draw_health:
 	
 	addi $t1, $t1, 324	# second layer
 	sw $t0, 0($t1)
-	sw $t2, -4($t1)
+	sw $t0, -4($t1)
 	sw $t0, -8($t1)
 	sw $t0, -12($t1)
 	sw $t0, -16($t1)
-	sw $t0, -20($t1)
+	sw $t2, -20($t1)
 	sw $t0, -24($t1)
 
 	addi $t1, $t1, -32
 	sw $t0, 0($t1)
-	sw $t2, -4($t1)
+	sw $t0, -4($t1)
 	sw $t0, -8($t1)
 	sw $t0, -12($t1)
 	sw $t0, -16($t1)
-	sw $t0, -20($t1)
+	sw $t2, -20($t1)
 	sw $t0, -24($t1)
 
 	addi $t1, $t1, -32
 	sw $t0, 0($t1)
-	sw $t2, -4($t1)
+	sw $t0, -4($t1)
 	sw $t0, -8($t1)
 	sw $t0, -12($t1)
 	sw $t0, -16($t1)
-	sw $t0, -20($t1)
+	sw $t2, -20($t1)
 	sw $t0, -24($t1)
 	
 	addi $t1, $t1, 320	# third layer
@@ -782,7 +1081,6 @@ decrease_health:
 	beq $t0, $t1, decrease_one
 	
 decrease_six:
-	
 while_dec_six:
 	beq $t3, $t2, health_end_6
 	sw $t4, 0($t2)
@@ -798,8 +1096,8 @@ health_end_6:
 	sw $t6, 0($t5)
 	
 	j decrement
-decrease_five:
 	
+decrease_five:
 while_dec_five:
 	beq $t3, $t2, health_end_5
 	sw $t4, 0($t2)
@@ -815,10 +1113,74 @@ health_end_5:
 	sw $t6, 0($t5)
 	
 	j decrement
+	
 decrease_four:
+while_dec_four:
+	beq $t3, $t2, health_end_4
+	sw $t4, 0($t2)
+	sw $t4, -4($t2)
+	sw $t4, -8($t2)
+	addi $t2, $t2, 256
+	j while_dec_four
+	
+health_end_4:
+	la $t5, health_end
+	lw $t6, health_end
+	addi $t6, $t6, -12
+	sw $t6, 0($t5)
+	
+	j decrement
+	
 decrease_three:
+while_dec_three:
+	beq $t3, $t2, health_end_3
+	sw $t4, 0($t2)
+	sw $t4, -4($t2)
+	sw $t4, -8($t2)
+	sw $t4, -12($t2)
+	addi $t2, $t2, 256
+	j while_dec_three
+health_end_3:
+	la $t5, health_end
+	lw $t6, health_end
+	addi $t6, $t6, -20
+	sw $t6, 0($t5)
+	
+	j decrement
+	
 decrease_two:
+while_dec_two:
+	beq $t3, $t2, health_end_2
+	sw $t4, 0($t2)
+	sw $t4, -4($t2)
+	sw $t4, -8($t2)
+	addi $t2, $t2, 256
+	j while_dec_two
+	
+health_end_2:
+	la $t5, health_end
+	lw $t6, health_end
+	addi $t6, $t6, -12
+	sw $t6, 0($t5)
+	
+	j decrement
+	
 decrease_one:
+while_dec_one:
+	beq $t3, $t2, health_end_1
+	sw $t4, 0($t2)
+	sw $t4, -4($t2)
+	sw $t4, -8($t2)
+	sw $t4, -12($t2)
+	addi $t2, $t2, 256
+	j while_dec_one
+health_end_1:
+	la $t5, health_end
+	lw $t6, health_end
+	addi $t6, $t6, -20
+	sw $t6, 0($t5)
+	
+	j decrement
 decrement:
 	la $t5, health_state
 	addi $t0, $t0, -1
@@ -859,7 +1221,7 @@ draw_alien:
  	li $t5, 0xa252c6	# $t5 stores purple
 
  	
-	lw $t7, bottom
+	lw $t7, bottom_alien
 	add $t7, $t0, $t7	#at bottom pixel now
 	
 	li $t1, 0x0000ff	# $t1 stores the blue colour code
@@ -878,13 +1240,13 @@ draw_alien:
 	sw $t1, 12($t7)
 	sw $t1, 16($t7)		
 	
-	addi $t7, $t7, -256
-	li $t1, 0x0000ff	# $t1 stores the sky blue colour code
-	sw $t1, 0($t7)		
-	sw $t1, 4($t7)
-	sw $t1, 8($t7)
-	sw $t1, 12($t7)
-	sw $t1, 16($t7)		
+	#addi $t7, $t7, -256
+	#li $t1, 0x0000ff	# $t1 stores the blue colour code
+	#sw $t1, 0($t7)		
+	#sw $t1, 4($t7)
+	#sw $t1, 8($t7)
+	#sw $t1, 12($t7)
+	#sw $t1, 16($t7)		
 
 	addi $t7, $t7, -260
 	li $t1, 0x87ceeb	# $t1 stores the sky blue colour code
@@ -903,12 +1265,12 @@ draw_alien:
 	sw $t5, 12($t7)
 	sw $t5, 16($t7)		
 
-	addi $t7, $t7, -256	# green
-	sw $t2, 0($t7)		
-	sw $t2, 4($t7)
-	sw $t2, 8($t7)
-	sw $t2, 12($t7)
-	sw $t2, 16($t7)		
+	#addi $t7, $t7, -256	# green
+	#sw $t2, 0($t7)		
+	#sw $t2, 4($t7)
+	#sw $t2, 8($t7)
+	#sw $t2, 12($t7)
+	#sw $t2, 16($t7)		
 
 	addi $t7, $t7, -260
 	sw $t2, 0($t7)		
@@ -938,7 +1300,61 @@ draw_alien:
 	sw $t2, 12($t7)	
 	
 	jr $ra
+
+check_damage:
+damage_left:
+	lw $t0, bottom
+	addi $t0, $t0, BASE_ADDRESS
+	lw $t0, bottom		# $t0 = bottom
+	addi $t0, $t0, BASE_ADDRESS
+	addi, $t0, $t0, -4	# $t0 = left bottom - 1 pixel
+	addi $t3, $t0, -2560	# $t3= top left
+	li $t1, 0x00ff00
 	
+while_d_l:	
+	beq $t0, $t3, damage_top
+	lw $t2, 0($t0)
+	beq $t2, $t1, damage_true
+	addi $t0, $t0, -256
+	j while_d_l
+	
+damage_top:
+	addi $t0, $t0, 4
+	addi $t3, $t3, 40
+while_d_t:	
+	beq $t0, $t3, damage_right
+	lw $t2, 0($t0)
+	beq $t2, $t1, damage_true
+	addi $t0, $t0, 4
+	j while_d_t
+	
+damage_right:
+	addi $t0, $t0, 256
+	addi $t3, $t3, 2816
+while_d_r:	
+	beq $t0, $t3, damage_bottom
+	lw $t2, 0($t0)
+	beq $t2, $t1, damage_true
+	addi $t0, $t0, 256
+	j while_d_r
+	
+damage_bottom:
+	addi $t0, $t0, -4
+	addi $t3, $t3, -40
+while_d_b:	
+	beq $t0, $t3, damage_false
+	lw $t2, 0($t0)
+	beq $t2, $t1, damage_true
+	addi $t0, $t0, -4
+	j while_d_b
+
+damage_true:
+	addi $v1, $zero, 1
+	j end_check_damage
+damage_false:
+	addi $v1, $zero, 0
+end_check_damage:
+	jr $ra
 buzz_jump: 
 	addi $sp, $sp, -4		# save $ra onto the stack
 	sw $ra, 0($sp)
@@ -1068,10 +1484,6 @@ buzz_gravity:
 	jal bottom_check
 	bne $v0, $zero, bottom_bound
 	
-	li $v0, 1
-    	li $a0, 9
-    	syscall
-	
 	lw $t1, bottom			# $t1 = bottom
 	lw $t2, gravity_state		# $t2 = jump_state
 	
@@ -1162,6 +1574,10 @@ bottom_bound:
 	addi $t2, $zero, -1	# $t2 = -1
 	la $t0, gravity_state	# $t0 = address of gravity_state
 	sw $t2, 0($t0)		# gravity_state = -1
+	
+	la $t0, double_state
+	sw $zero, 0($t0)
+	
 	j end_gravity
 
 gravity_increment:
@@ -1175,6 +1591,17 @@ end_gravity:
 	addi $sp, $sp, 4
 	jr $ra
 
+clear_screen:
+	addi $t0, $zero, BASE_ADDRESS
+	addi $t1, $t0, 16384
+	li $t2, 0x000000
+while_clear:
+	beq $t0, $t1, end_clear
+	sw $t2, 0($t0)
+	addi $t0, $t0, 4
+	j while_clear
+end_clear:
+	jr $ra
 END:	
 	sw $t0, 0($t1) 
  	li $v0, 1

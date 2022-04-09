@@ -59,12 +59,29 @@ bottom_alien: .word 15420
 double_state: .word 0
 damage_count: .word 0
 bottom_woody: .word 4864
+level: .word 2
+flame_state: .word 0
+start_platform_2: .word 10748
+start_moving_plat: .word 13252
+moving_plat_state: .word 0
 .text 
  li $t0, BASE_ADDRESS # $t0 stores the base address for display 
 
  
 .globl main
 main:	
+lw $t0, level
+addi $t1, $zero, 1
+beq $t0, $t1, level_1
+
+addi $t1, $zero, 2
+beq $t0, $t1, level_2
+
+addi $t1, $zero, 3
+beq $t0, $t1, level_3
+
+# call you win function here
+level_1:
 	la $t0, bottom			# setting buzz to initial starting position
 	addi $t1, $zero, 15364
 	sw $t1, 0($t0)
@@ -83,7 +100,21 @@ main:
 	jal draw_alien
 	jal draw_ground
 	jal draw_woody
-
+	
+	j main_while
+level_2:
+	la $t0, bottom
+	li $t1, 10452
+	sw $t1, 0($t0)
+	lw $s0, bottom
+	jal draw_flames
+	jal draw_platforms_2
+	jal draw_moving_platform
+	jal draw_health
+	jal draw_buzz
+	#jal erase_moving_plat
+	j main_while
+level_3:
 main_while:
 	lw $s0, bottom
 	li $v0, 32 
@@ -152,11 +183,16 @@ check_double:
 	jal buzz_jump
 
 end_while:
+moving_platform_update:
+	jal erase_moving_plat
+	jal move_platform
+	jal draw_moving_platform
 	lw $t0, bottom			# $t0 = bottom
 	beq $s0, $t0, reset_val		# if old bottom equals new bottom no change
 	jal erase_buzz			# erase old buzz
 	jal draw_buzz			# draw new buzz
 reset_val:
+	jal draw_flames
 	lw $t0, damage_count		# $t0 = damage_count
 	beq $t0, $zero, damage		# if damage_count is 0 check for damage
 	addi $t0, $t0, -1		# else decrement damage_count
@@ -1053,7 +1089,198 @@ draw_health:
 	sw $t0, 0($t1)
 
 	jr $ra
+draw_flames:
+	lw $t5, flame_state
+
+	beq $t5, $zero, draw_first_flame
+
+	beq $t5, 3, draw_third_flame
+
+	j flames_increment
+draw_first_flame:
+	li $t5, 0x000000			#erasing
+	addi $t0, $zero, 15104
+	addi $t0, $t0, BASE_ADDRESS
+	addi $t4, $zero, BASE_ADDRESS
+	addi $t4, $t4, 16384
+while_erase:
+	beq $t0, $t4, start_draw_first
+	sw $t5, 0($t0)
+	addi $t0, $t0, 4
+	j while_erase
+start_draw_first:
+addi $t0, $zero, 16128
+addi $t0, $t0, BASE_ADDRESS
+li $t1, 0x378c08	# dark green
+li $t2, 0x00ff00	# green
+li $t3, 0xa5e44f	# light green
+addi $t4, $t0, 240
+while_flames_1:
+	beq $t0, $t4, end_draw_flames_1
+	sw $t1, 0($t0)
+	sw $t2, 4($t0)
+	sw $t3, 8($t0)
+	sw $t3, 12($t0)
+	sw $t3, 16($t0)
+	sw $t2, 20($t0)
+	addi $t0, $t0, 24
+	j while_flames_1
+end_draw_flames_1:
+	sw $t1, 0($t0)
+	sw $t2, 4($t0)
+	sw $t3, 8($t0)
+	sw $t3, 12($t0)
+addi $t0, $t0, -492
+addi $t4, $t4, -252
+while_flames_2:
+	beq $t0, $t4, end_draw_flames_2
+	sw $t1, 0($t0)
+	sw $t2, 4($t0)
+	sw $t3, 8($t0)
+	sw $t2, 12($t0)
+	sw $t1, 16($t0)
+	addi $t0, $t0, 24
+	j while_flames_2
+end_draw_flames_2:
+	sw $t1, 0($t0)
+	sw $t2, 4($t0)
+	sw $t3, 8($t0)
+
+addi $t0, $t0, -496
+addi $t4, $t4, -256
+while_flames_3:
+	beq $t0, $t4, end_draw_flames_3
+	sw $t1, 0($t0)
+	sw $t2, 4($t0)
+	sw $t2, 8($t0)
+	sw $t2, 12($t0)
+	sw $t1, 16($t0)
+	addi $t0, $t0, 24
+	j while_flames_3
+end_draw_flames_3:
+	sw $t1, 0($t0)
+	sw $t2, 4($t0)
+	sw $t2, 8($t0)
+addi $t0, $t0, -492
+addi $t4, $t4, -252
+while_flames_4:
+	beq $t0, $t4, end_draw_flames_4
+	sw $t1, 0($t0)
+	sw $t2, 4($t0)
+	sw $t1, 8($t0)
+	addi $t0, $t0, 24
+	j while_flames_4
+end_draw_flames_4:
+	sw $t1, 0($t0)
+	sw $t2, 4($t0)
+addi $t0, $t0, -492
+addi $t4, $t4, -252
+sw $t1, 0($t0)
+sw $t1, 0($t4)
+while_flames_5:
+	beq $t0, $t4, flames_increment
+	sw $t1, 0($t0)
+	addi $t0, $t0, 24
+	j while_flames_5
+
+## second state
+draw_third_flame: 
+	li $t5, 0x000000			#erasing
+	addi $t0, $zero, 15104
+	addi $t0, $t0, BASE_ADDRESS
+	addi $t4, $zero, BASE_ADDRESS
+	addi $t4, $t4, 16384
+while_erase_third:
+	beq $t0, $t4, start_draw_sec
+	sw $t5, 0($t0)
+	addi $t0, $t0, 4
+	j while_erase_third
 	
+start_draw_sec:
+addi $t0, $zero, 16128
+addi $t0, $t0, BASE_ADDRESS
+addi $t0, $t0, 4
+li $t1, 0x378c08	# dark green
+li $t2, 0x00ff00	# green
+li $t3, 0xa5e44f	# light green
+addi $t4, $t0, 240
+
+draw_first_flame_sec:
+while_flames_1_sec:
+	beq $t0, $t4, end_draw_flames_1_sec
+	sw $t1, 0($t0)
+	sw $t2, 4($t0)
+	sw $t3, 8($t0)
+	sw $t3, 12($t0)
+	sw $t3, 16($t0)
+	sw $t2, 20($t0)
+	addi $t0, $t0, 24
+	j while_flames_1_sec
+end_draw_flames_1_sec:
+	sw $t1, 0($t0)
+	sw $t2, 4($t0)
+	sw $t3, 8($t0)
+addi $t0, $t0, -492
+addi $t4, $t4, -252
+while_flames_2_sec:
+	beq $t0, $t4, end_draw_flames_2_sec
+	sw $t1, 0($t0)
+	sw $t2, 4($t0)
+	sw $t3, 8($t0)
+	sw $t2, 12($t0)
+	sw $t1, 16($t0)
+	addi $t0, $t0, 24
+	j while_flames_2_sec
+end_draw_flames_2_sec:
+	sw $t1, 0($t0)
+	sw $t2, 4($t0)
+addi $t0, $t0, -496
+addi $t4, $t4, -256
+
+while_flames_3_sec:
+	beq $t0, $t4, end_draw_flames_3_sec
+	sw $t1, 0($t0)
+	sw $t2, 4($t0)
+	sw $t2, 8($t0)
+	sw $t2, 12($t0)
+	sw $t1, 16($t0)
+	addi $t0, $t0, 24
+	j while_flames_3_sec
+end_draw_flames_3_sec:
+	sw $t1, 0($t0)
+	sw $t2, 4($t0)
+addi $t0, $t0, -492
+addi $t4, $t4, -252
+while_flames_4_sec:
+	beq $t0, $t4, end_draw_flames_4_sec
+	sw $t1, 0($t0)
+	sw $t2, 4($t0)
+	sw $t1, 8($t0)
+	addi $t0, $t0, 24
+	j while_flames_4_sec
+end_draw_flames_4_sec:
+	sw $t1, 0($t0)
+addi $t0, $t0, -492
+addi $t4, $t4, -252
+while_flames_5_sec:
+	beq $t0, $t4, flames_increment
+	sw $t1, 0($t0)
+	addi $t0, $t0, 24
+	j while_flames_5_sec
+flames_increment:
+	lw $t6, flame_state
+	addi $t5, $zero, 5
+	beq $t6, $t5, set_zero		# if flame_state is 3 set it back to 0
+	la $t5, flame_state		# increment flame_state
+	addi $t6, $t6, 1
+	sw $t6, 0($t5)
+	j end_draw_flames
+set_zero:
+	la $t5, flame_state
+	sw $zero, 0($t5)
+end_draw_flames:
+	jr $ra
+
 decrease_health:
 	lw $t0, health_state
 	
@@ -1601,6 +1828,134 @@ while_clear:
 	addi $t0, $t0, 4
 	j while_clear
 end_clear:
+	jr $ra
+	
+draw_platforms_2:
+	lw $t0, start_platform_2
+	addi $t0, $t0, BASE_ADDRESS
+	li $t1, 0x808080
+	li $t2, 0xc0c0c0
+start_platform_level_2:
+	sw $t1, 0($t0)
+	sw $t1, -4($t0)
+	sw $t1, -8($t0)
+	sw $t1, -12($t0)
+	sw $t1, -16($t0)
+	sw $t1, -20($t0)
+	sw $t1, -24($t0)
+	sw $t1, -28($t0)
+	sw $t1, -32($t0)
+	sw $t1, -36($t0)
+	sw $t1, -40($t0)
+	sw $t1, -44($t0)
+	
+	addi $t0, $t0, 256
+	sw $t2, 0($t0)
+	sw $t2, -4($t0)
+	sw $t2, -8($t0)
+	sw $t2, -12($t0)
+	sw $t2, -16($t0)
+	sw $t2, -20($t0)
+	sw $t2, -24($t0)
+	sw $t2, -28($t0)
+	sw $t2, -32($t0)
+	sw $t2, -36($t0)
+	sw $t2, -40($t0)
+	sw $t2, -44($t0)
+	jr $ra
+	
+draw_moving_platform:
+	lw $t0, start_moving_plat
+
+	addi $t0, $t0, BASE_ADDRESS
+	li $t1, 0x808080
+	li $t2, 0xc0c0c0
+	
+	sw $t1, 0($t0)
+	sw $t1, -4($t0)
+	sw $t1, -8($t0)
+	sw $t1, -12($t0)
+	sw $t1, -16($t0)
+	sw $t1, -20($t0)
+	sw $t1, -24($t0)
+	sw $t1, -28($t0)
+	sw $t1, -32($t0)
+	sw $t1, -36($t0)
+	sw $t1, -40($t0)
+	sw $t1, -44($t0)
+	
+	addi $t0, $t0, 256
+	sw $t2, 0($t0)
+	sw $t2, -4($t0)
+	sw $t2, -8($t0)
+	sw $t2, -12($t0)
+	sw $t2, -16($t0)
+	sw $t2, -20($t0)
+	sw $t2, -24($t0)
+	sw $t2, -28($t0)
+	sw $t2, -32($t0)
+	sw $t2, -36($t0)
+	sw $t2, -40($t0)
+	sw $t2, -44($t0)
+
+	jr $ra
+	
+move_platform:
+	lw $t0, start_moving_plat
+
+	beq $t0, 13100, move_plat_right	# if it is at left edge start moving right
+	beq $t0, 13252, move_plat_left	# if it is at right edge start moving left
+
+	j adding_move
+move_plat_right:
+	la $t1, moving_plat_state
+	li $t2, 4
+	sw $t2, 0($t1)
+	j adding_move
+move_plat_left:
+	la $t1, moving_plat_state
+	li $t2, -4
+	sw $t2, 0($t1)
+adding_move:
+	lw $t1, moving_plat_state
+	lw $t0, start_moving_plat
+	add $t0, $t0, $t1		# start_platform += moving_plat_state
+	la $t3, start_moving_plat
+	sw $t0, 0($t3)
+	jr $ra
+
+erase_moving_plat:
+	lw $t0, start_moving_plat
+	addi $t0, $t0, BASE_ADDRESS
+	li $t1, 0x000000
+	
+	sw $t1, 0($t0)
+	sw $t1, -4($t0)
+	sw $t1, -8($t0)
+	sw $t1, -12($t0)
+	sw $t1, -16($t0)
+	sw $t1, -20($t0)
+	sw $t1, -24($t0)
+	sw $t1, -28($t0)
+	sw $t1, -32($t0)
+	sw $t1, -36($t0)
+	sw $t1, -40($t0)
+	sw $t1, -44($t0)
+	
+	addi $t0, $t0, 256
+	sw $t1, 0($t0)
+	sw $t1, -4($t0)
+	sw $t1, -8($t0)
+	sw $t1, -12($t0)
+	sw $t1, -16($t0)
+	sw $t1, -20($t0)
+	sw $t1, -24($t0)
+	sw $t1, -28($t0)
+	sw $t1, -32($t0)
+	sw $t1, -36($t0)
+	sw $t1, -40($t0)
+	sw $t1, -44($t0)
+	
 	jr $ra
 END:	
 	sw $t0, 0($t1) 

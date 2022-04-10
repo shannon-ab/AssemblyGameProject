@@ -208,6 +208,7 @@ main:
 la $t0, level
 li $t1, 1
 sw $t1, 0($t0)
+
 # call you win function here
 level_1:
 	la $t0, bottom			# setting buzz to initial starting position
@@ -258,6 +259,18 @@ level_2:
 	la $t0, health_end
 	addi $t1, $zero, 504
 	sw $t1, 0($t0)	
+
+	la $t0, start_moving_plat
+	li $t1, 10672
+	sw $t1, 0($t0)
+	
+	la $t0, moving_plat_border_r
+	li $t1, 10672
+	sw $t1, 0($t0)
+	
+	la $t0, moving_plat_border_l
+	li $t1, 10540
+	sw $t1, 0($t0)
 	
 	jal clear_screen
 	jal draw_flames
@@ -270,7 +283,7 @@ level_2:
 	j main_while
 level_3:
 	la $t0, bottom_alien
-	li $t1, 9020
+	li $t1, 9000
 	sw $t1, 0($t0)
 
 	la $t0, bottom
@@ -290,9 +303,22 @@ level_3:
 	li $t1, 4100
 	sw $t1, 0($t0)
 	
+	la $t0, start_moving_plat
+	li $t1, 9404
+	sw $t1, 0($t0)
+	
+	la $t0, moving_plat_border_r
+	li $t1, 9404
+	sw $t1, 0($t0)
+	
+	la $t0, moving_plat_border_l
+	li $t1, 9364
+	sw $t1, 0($t0)
+	
 	jal clear_screen
 	jal draw_alien
 	jal draw_platforms_3
+	jal draw_moving_platform
 	jal draw_flames
 	jal draw_health
 	jal alien_shoot
@@ -370,13 +396,12 @@ check_double:
 end_while:
 moving_platform_update:
 	lw $t0, level
-	bne $t0, 2, moving_alien_update
+	beq $t0, 1, moving_alien_update
 	jal erase_moving_plat
 	jal move_platform
 	jal draw_moving_platform
 	jal draw_flames
 	
-	j reset_val
 	#lw $t0, bottom			# $t0 = bottom
 	#beq $s0, $t0, reset_val		# if old bottom equals new bottom no change
 moving_alien_update:
@@ -385,7 +410,6 @@ moving_alien_update:
 	jal erase_alien
 	jal move_alien
 	jal draw_alien
-	j reset_val
 alien_shoot_update:
 	lw $t0, level
 	bne $t0, 3, reset_val
@@ -2415,27 +2439,8 @@ draw_platforms_3:
 	sw $t2, -40($t0)
 	sw $t2, -44($t0)
 	
-	addi $t0, $t0, -4164
-	sw $t1, 0($t0)
-	sw $t1, -4($t0)
-	sw $t1, -8($t0)
-	sw $t1, -12($t0)
-	sw $t1, -16($t0)
-	sw $t1, -20($t0)
-	sw $t1, -24($t0)
-	sw $t1, -28($t0)
-	sw $t1, -32($t0)
-	sw $t1, -36($t0)
-	sw $t1, -40($t0)
-	sw $t1, -44($t0)
-	sw $t1, -48($t0)
-	sw $t1, -52($t0)
-	sw $t1, -56($t0)
-	sw $t1, -60($t0)
-	sw $t1, -64($t0)
-	sw $t1, -68($t0)
-	sw $t1, -72($t0)
-	sw $t1, -76($t0)
+	addi $t0, $zero, 9380
+	addi $t0, $t0, BASE_ADDRESS
 	sw $t1, -80($t0)
 	sw $t1, -84($t0)
 	sw $t1, -88($t0)
@@ -2450,26 +2455,6 @@ draw_platforms_3:
 	sw $t1, -124($t0)
 	
 	addi $t0, $t0, 256
-	sw $t2, 0($t0)
-	sw $t2, -4($t0)
-	sw $t2, -8($t0)
-	sw $t2, -12($t0)
-	sw $t2, -16($t0)
-	sw $t2, -20($t0)
-	sw $t2, -24($t0)
-	sw $t2, -28($t0)
-	sw $t2, -32($t0)
-	sw $t2, -36($t0)
-	sw $t2, -40($t0)
-	sw $t2, -44($t0)
-	sw $t2, -48($t0)
-	sw $t2, -52($t0)
-	sw $t2, -56($t0)
-	sw $t2, -60($t0)
-	sw $t2, -64($t0)
-	sw $t2, -68($t0)
-	sw $t2, -72($t0)
-	sw $t2, -76($t0)
 	sw $t2, -80($t0)
 	sw $t2, -84($t0)
 	sw $t2, -88($t0)
@@ -2483,7 +2468,7 @@ draw_platforms_3:
 	sw $t2, -120($t0)
 	sw $t2, -124($t0)
 	
-	addi, $t0, $zero, 4440
+	addi, $t0, $zero, 4428
 	addi $t0, $t0, BASE_ADDRESS
 	sw $t1, 0($t0)
 	sw $t1, -4($t0)
@@ -2505,9 +2490,7 @@ draw_platforms_3:
 	sw $t1, -68($t0)
 	sw $t1, -72($t0)
 	sw $t1, -76($t0)
-	sw $t1, -80($t0)
-	sw $t1, -84($t0)
-	sw $t1, -88($t0)
+
 
 	addi $t0, $t0, 256
 	sw $t2, 0($t0)
@@ -2530,9 +2513,6 @@ draw_platforms_3:
 	sw $t2, -68($t0)
 	sw $t2, -72($t0)
 	sw $t2, -76($t0)
-	sw $t2, -80($t0)
-	sw $t2, -84($t0)
-	sw $t2, -88($t0)
 
 	jr $ra
 alien_shoot:

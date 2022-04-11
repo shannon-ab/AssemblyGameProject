@@ -2583,9 +2583,6 @@ jr $ra
 	
 
 END:	
-	sw $t0, 0($t1) 
- 	li $v0, 1
- 	syscall
  	li $v0, 10 # terminate the program gracefully 
  	syscall 
 	

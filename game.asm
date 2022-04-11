@@ -14,60 +14,71 @@
 # 
 # Which milestones have been reached in this submission? 
 # (See the assignment handout for descriptions of the milestones) 
-# - Milestone 1/2/3 (choose the one the applies) 
+# - Milestone 3(choose the one the applies) 
 # 
 # Which approved features have been implemented for milestone 3? 
 # (See the assignment handout for the list of additional features) 
-# 1. (fill in the feature, if any) 
-# 2. (fill in the feature, if any) 
-# 3. (fill in the feature, if any) 
-# ... (add more if necessary) 
-# 
+# 1. Health/score
+# 2. Fail condition
+# 3. Win condition
+# 4. Moving platforms
+# 5. Moving objects
+# 6. Different levels
+# 7. Enemies shoot
+# 8. Double jump
 # Link to video demonstration for final submission: 
 # - (insert YouTube / MyMedia / other URL here). Make sure we can view it! 
 # 
 # Are you OK with us sharing the video with people outside course staff? 
-# - yes / no / yes, and please share this project github link as well! 
+# - yes, and please share this project github link as well! 
 # 
 # Any additional information that the TA needs to know: 
 # - (write here, if any) 
 # 
 ##################################################################### 
-
-# Bitmap display starter code 
-# 
-# Bitmap Display Configuration: 
-# - Unit width in pixels: 4           
-# - Unit height in pixels: 4 
-# - Display width in pixels: 256 
-# - Display height in pixels: 256 
-# - Base Address for Display: 0x10008000 ($gp) 
-# 
 .eqv  BASE_ADDRESS  0x10008000 
  
-
 .data
-
 bottom: .word 15364
+
 state: .word 1
+
 ground: .word 16128
+
 jump_state: .word -1
+
 gravity_state: .word -1
+
 health_end: .word 504
+
 health_state: .word 6
+
 bottom_alien: .word 15408
+
 double_state: .word 0
+
 damage_count: .word 0
+
 bottom_woody: .word 4864
+
 level: .word 3
+
 flame_state: .word 0
+
 start_platform_2: .word 13308
-moving_plat_border_l: .word 10540
-moving_plat_border_r: .word 10672
-start_moving_plat: .word 10672
-moving_plat_state: .word 0
-moving_alien_state: .word 0
+
 start_platform_3: .word 13308
+
+moving_plat_border_l: .word 10540
+
+moving_plat_border_r: .word 10672
+
+start_moving_plat: .word 10672
+
+moving_plat_state: .word 0
+
+moving_alien_state: .word 0
+
 alien_bullet: .word 8544
 game_over_array: .word 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 
 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 
@@ -199,17 +210,12 @@ you_win_array: .word 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 
 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000
 
-.text 
- li $t0, BASE_ADDRESS # $t0 stores the base address for display 
-
- 
 .globl main
 main:	
 la $t0, level
 li $t1, 1
 sw $t1, 0($t0)
 
-# call you win function here
 level_1:
 	la $t0, bottom			# setting buzz to initial starting position
 	addi $t1, $zero, 15364
@@ -243,22 +249,7 @@ level_1:
 	
 	j main_while
 level_2:
-	la $t0, bottom
-	li $t1, 13012
-	sw $t1, 0($t0)
-	lw $s0, bottom
-	
-	la $t0, bottom_woody
-	li $t1, 5888
-	sw $t1, 0($t0)
-	
-	la $t0, health_state
-	addi $t1, $zero, 6
-	sw $t1, 0($t0)
-	
-	la $t0, health_end
-	addi $t1, $zero, 504
-	sw $t1, 0($t0)	
+	jal clear_screen
 
 	la $t0, start_moving_plat
 	li $t1, 10672
@@ -271,17 +262,45 @@ level_2:
 	la $t0, moving_plat_border_l
 	li $t1, 10540
 	sw $t1, 0($t0)
+
+	la $t0, bottom
+	li $t1, 13012
+	sw $t1, 0($t0)
+	lw $s0, bottom
 	
-	jal clear_screen
+	la $t0, bottom_woody
+	li $t1, 5888
+	sw $t1, 0($t0)
+	
 	jal draw_flames
 	jal draw_platforms_2
 	jal draw_moving_platform
-	jal draw_health
 	jal draw_buzz
 	jal draw_woody
 	jal erase_moving_plat
-	j main_while
+	
+	lw $s0, health_state
+    
+	la $t0, health_state
+	addi $t1, $zero, 6
+	sw $t1, 0($t0)
+	
+	la $t0, health_end
+	addi $t1, $zero, 504
+	sw $t1, 0($t0)	
+    
+    	jal draw_health
+    
+    	lw $t0, health_state
+    
+while_decrease_health_level_2:
+	beq $s0, $t0, main_while
+	jal decrease_health
+    	j while_decrease_health_level_2
+
 level_3:
+	jal clear_screen
+	
 	la $t0, bottom_alien
 	li $t1, 9000
 	sw $t1, 0($t0)
@@ -290,14 +309,6 @@ level_3:
 	li $t1, 13012
 	sw $t1, 0($t0)
 	lw $s0, bottom
-	
-	la $t0, health_state
-	addi $t1, $zero, 6
-	sw $t1, 0($t0)
-	
-	la $t0, health_end
-	addi $t1, $zero, 504
-	sw $t1, 0($t0)
 	
 	la $t0, bottom_woody
 	li $t1, 4100
@@ -320,12 +331,29 @@ level_3:
 	jal draw_platforms_3
 	jal draw_moving_platform
 	jal draw_flames
-	jal draw_health
 	jal alien_shoot
 	jal draw_buzz
 	jal draw_woody
+	
+	lw $s0, health_state
+    
+	la $t0, health_state
+	addi $t1, $zero, 6
+	sw $t1, 0($t0)
+	
+	la $t0, health_end
+	addi $t1, $zero, 504
+	sw $t1, 0($t0)	
+    
+    	jal draw_health
+    
+    	lw $t0, health_state
+    
+while_decrease_health_level_3:
+	beq $s0, $t0, main_while
+	jal decrease_health
+    	j while_decrease_health_level_3
 
-	j main_while
 main_while:
 	lw $s0, bottom
 	li $v0, 32 
@@ -1218,6 +1246,7 @@ draw_woody:
 	sw $t1, 20($t0)
 	sw $t1, 24($t0)
 	jr $ra
+	
 draw_health:
 	li $t0, 0xff0000	# $t0 stores red colour code
 	li $t2, 0xffffff	# $t2 stores white colour code
@@ -1344,6 +1373,7 @@ draw_health:
 	sw $t0, 0($t1)
 
 	jr $ra
+	
 draw_flames:
 	lw $t5, flame_state
 
@@ -2338,18 +2368,19 @@ erase_alien:
 	jr $ra
 	
 draw_game_over_with_array:
-    li $t0, BASE_ADDRESS
-    la $t1, game_over_array
-    li $t3, 1
+	jal clear_screen
+    	li $t0, BASE_ADDRESS
+    	la $t1, game_over_array
+    	li $t3, 1
 while_game_over_array:
-    lw $t2, 0($t1)
+    	lw $t2, 0($t1)
 
-    sw $t2, 0($t0)
-    addi $t0, $t0, 4
-    addi $t1, $t1, 4
+    	sw $t2, 0($t0)
+    	addi $t0, $t0, 4
+    	addi $t1, $t1, 4
 
-    addi $t3, $t3, 1
-    bne $t3, 4096, while_game_over_array
+    	addi $t3, $t3, 1
+    	bne $t3, 4096, while_game_over_array
 check_key_game_over:	
 	li $t9, 0xffff0000  
 	lw $t8, 0($t9) 
@@ -2357,32 +2388,33 @@ check_key_game_over:
 j main
 
 draw_you_win_with_array:
-    li $t0, BASE_ADDRESS
-    la $t1, you_win_array
-    li $t3, 1
+	jal clear_screen
+    	li $t0, BASE_ADDRESS
+    	la $t1, you_win_array
+    	li $t3, 1
 while_you_win_array:
-    lw $t2, 0($t1)
+    	lw $t2, 0($t1)
 
-    sw $t2, 0($t0)
-    addi $t0, $t0, 4
-    addi $t1, $t1, 4
+    	sw $t2, 0($t0)
+    	addi $t0, $t0, 4
+    	addi $t1, $t1, 4
 
-    addi $t3, $t3, 1
-    bne $t3, 4096, while_you_win_array
+    	addi $t3, $t3, 1
+    	bne $t3, 4096, while_you_win_array
     
-    lw $s0, health_state
+    	lw $s0, health_state
     
-    la $t0, health_end
-    li $t1, 7084
-    sw $t1, 0($t0)
+   	la $t0, health_end
+    	li $t1, 7084
+    	sw $t1, 0($t0)
+    	
+    	la $t0, health_state
+    	li $t1, 6
+    	sw $t1, 0($t0)
     
-    la $t0, health_state
-    li $t1, 6
-    sw $t1, 0($t0)
+    	jal draw_health
     
-    jal draw_health
-    
-    lw $t0, health_state
+    	lw $t0, health_state
     
 while_decrease_health:
 	beq $s0, $t0, draw_woody_buzz
